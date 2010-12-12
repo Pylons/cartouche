@@ -40,12 +40,3 @@ class RegistrationInfo(Persistent):
         self.security_question = security_question
         self.security_answer = security_answer
         self.token = token
-
-
-def appmaker(zodb_root):
-    if not 'app_root' in zodb_root:
-        app_root = Root()
-        zodb_root['app_root'] = app_root
-        import transaction
-        transaction.commit()
-    return zodb_root['app_root']

@@ -1,6 +1,16 @@
 from pyramid.configuration import Configurator
 from repoze.zodbconn.finder import PersistentApplicationFinder
-from cartouche.models import appmaker
+
+
+def appmaker(zodb_root):
+    if not 'app_root' in zodb_root:
+        from cartouche.models import Root
+        app_root = Root()
+        zodb_root['app_root'] = app_root
+        import transaction
+        transaction.commit()
+    return zodb_root['app_root']
+
 
 def main(global_config, **settings):
     """ This function returns a Pyramid WSGI application.
