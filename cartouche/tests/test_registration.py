@@ -13,6 +13,7 @@
 ##############################################################################
 import unittest
 
+
 class _Base(object):
 
     def setUp(self):
@@ -30,6 +31,7 @@ class _Base(object):
     def _makeRequest(self, **kw):
         from pyramid.testing import DummyRequest
         return DummyRequest(**kw)
+
 
 class Test_register_view(_Base, unittest.TestCase):
 
