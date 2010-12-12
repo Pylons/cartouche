@@ -181,6 +181,15 @@ class Test_register_view(_Base, unittest.TestCase):
         self.assertEqual(len(form.children), 2)
         self.assertEqual(form.children[0].name, 'email')
         self.assertEqual(form.children[1].name, 'security')
+        self.assertEqual(info['message'], None)
+
+    def test_GET_w_message(self):
+        request = self._makeRequest(GET={'message': 'Foo'})
+
+        mtr = self.config.testing_add_template('templates/main.pt')
+        info = self._callFUT(request=request)
+
+        self.assertEqual(info['message'], 'Foo')
 
     def test_POST(self):
         from urllib import quote

@@ -170,6 +170,7 @@ def register_view(context, request):
     return {'main_template': main_template.implementation(),
             'form': Form(Signup(), buttons=('register',)),
             'appstruct': None,
+            'message': request.GET.get('message'),
            }
 
 
