@@ -143,11 +143,15 @@ complete your registration.
 
 def register_view(context, request):
     if 'register' in request.POST:
+        pending = request.registry.queryAdapter(context,
+                                                IPendingRegistrations)
+        if pending is None:
+            pending = PendingRegistrations(context)
         email = request.POST['email']
         security = request.POST['security']
-        token = security['token'] = _randomToken(request)
-        pending_registrations = context.users.pending_registrations
-        pending_registrations[email] = security
+        token = _randomToken(request)
+        pending.set(email, security['question'], security['answer'], token)
+
         from_addr = request.registry.settings['from_addr']
         delivery = request.registry.queryUtility(IMailDelivery) or _delivery
         confirmation_url = model_url(context, request, request.view_name,
@@ -167,6 +171,11 @@ def register_view(context, request):
             'appstruct': None,
            }
 
+
+
+REGISTER_FIRST = 'Please register first.'
+REGISTER_OR_VISIT = ('Please register first '
+                     'or visit the link in your confirmation e-mail.')
 
 def confirm_registration_view(context, request):
     if 'confirm' in request.POST:
@@ -188,8 +197,23 @@ def confirm_registration_view(context, request):
                                      query=dict(email=email))
         return HTTPFound(location=confirmation_url)
 
+    email = request.GET.get('email')
+    if email is None:
+        return HTTPFound(location=model_url(context, request, 'register.html',
+                                            query={'message':
+                                                        REGISTER_OR_VISIT}))
+    pending = request.registry.queryAdapter(context,
+                                            IPendingRegistrations)
+    if pending is None:
+        pending = PendingRegistrations(context)
+
+    if pending.get(email) is None:
+        return HTTPFound(location=model_url(context, request, 'register.html',
+                                            query={'message':
+                                                        REGISTER_FIRST}))
+
     main_template = get_renderer('templates/main.pt')
     return {'main_template': main_template.implementation(),
             'form': Form(Confirm(), buttons=('confirm',)),
-            'appstruct': {'email': request.GET['email']}
+            'appstruct': {'email': email},
            }

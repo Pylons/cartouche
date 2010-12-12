@@ -32,18 +32,6 @@ class _Base(object):
         from pyramid.testing import DummyRequest
         return DummyRequest(**kw)
 
-
-class PendingRegistrationsTests(_Base, unittest.TestCase):
-
-    def _getTargetClass(self):
-        from cartouche.registration import PendingRegistrations
-        return PendingRegistrations
-
-    def _makeOne(self, context=None):
-        if context is None:
-            context = self._makeContext()
-        return self._getTargetClass()(context)
-
     def _makeInfo(self, email='phred@example.com',
                   question='question', answer='answer', token='token'):
         class DummyRegistrationInfo(object):
@@ -60,13 +48,26 @@ class PendingRegistrationsTests(_Base, unittest.TestCase):
                 self.pending = {}
         return DummyCartouche()
 
-    def _verifyInfo(self, info):
+    def _verifyInfo(self, info, email='phred@example.com',
+                  question='question', answer='answer', token='token'):
         from cartouche.interfaces import IRegistrationInfo
         self.failUnless(IRegistrationInfo.providedBy(info))
-        self.assertEqual(info.email, 'phred@example.com')
-        self.assertEqual(info.security_question, 'question')
-        self.assertEqual(info.security_answer, 'answer')
-        self.assertEqual(info.token, 'token')
+        self.assertEqual(info.email, email)
+        self.assertEqual(info.security_question, question)
+        self.assertEqual(info.security_answer, answer)
+        self.assertEqual(info.token, token)
+
+
+class PendingRegistrationsTests(_Base, unittest.TestCase):
+
+    def _getTargetClass(self):
+        from cartouche.registration import PendingRegistrations
+        return PendingRegistrations
+
+    def _makeOne(self, context=None):
+        if context is None:
+            context = self._makeContext()
+        return self._getTargetClass()(context)
 
     def test_class_conforms_to_IPendingRegistrations(self):
         from zope.interface.verify import verifyClass
@@ -81,14 +82,18 @@ class PendingRegistrationsTests(_Base, unittest.TestCase):
     def test_set_context_is_root_no_cartouche(self):
         context = self._makeContext()
         adapter = self._makeOne(context)
+
         adapter.set('phred@example.com', 'question', 'answer', 'token')
+
         self._verifyInfo(context.cartouche.pending['phred@example.com'])
 
     def test_set_context_is_root_w_cartouche(self):
         context = self._makeContext()
         cartouche = context.cartouche = self._makeCartouche()
         adapter = self._makeOne(context)
+
         adapter.set('phred@example.com', 'question', 'answer', 'token')
+
         self._verifyInfo(cartouche.pending['phred@example.com'])
 
     def test_set_context_is_not_root(self):
@@ -97,20 +102,26 @@ class PendingRegistrationsTests(_Base, unittest.TestCase):
         parent = root['parent'] = self._makeContext()
         context = parent['context'] = self._makeContext()
         adapter = self._makeOne(context)
+
         adapter.set('phred@example.com', 'question', 'answer', 'token')
+
         self._verifyInfo(cartouche.pending['phred@example.com'])
 
     def test_get_context_is_root_no_cartouche(self):
         context = self._makeContext()
         adapter = self._makeOne(context)
+
         self.assertEqual(adapter.get('phred@example.com'), None)
+
         self.failIf('cartouche' in context.__dict__)
 
     def test_get_context_is_root_w_cartouche_miss(self):
         context = self._makeContext()
         cartouche = context.cartouche = self._makeCartouche()
         adapter = self._makeOne(context)
+
         self.assertEqual(adapter.get('phred@example.com'), None)
+
         self.failIf('phred@example.com' in cartouche.pending)
 
     def test_get_context_is_root_w_cartouche_hit(self):
@@ -118,7 +129,9 @@ class PendingRegistrationsTests(_Base, unittest.TestCase):
         cartouche = context.cartouche = self._makeCartouche()
         info = self._makeInfo()
         cartouche.pending['phred@example.com'] = info
+
         adapter = self._makeOne(context)
+
         self.failUnless(adapter.get('phred@example.com') is info)
 
 
@@ -132,8 +145,7 @@ class Test_register_view(_Base, unittest.TestCase):
             request = self._makeRequest()
         return register_view(context, request)
 
-    def test_initial_GET(self):
-        # No variables in QUERY_STRING
+    def test_GET(self):
         from deform import Form
 
         mtr = self.config.testing_add_template('templates/main.pt')
@@ -148,8 +160,7 @@ class Test_register_view(_Base, unittest.TestCase):
         self.assertEqual(form.children[0].name, 'email')
         self.assertEqual(form.children[1].name, 'security')
 
-    def test_initial_POST(self):
-        # E-mail, security question posted from first form.
+    def test_POST(self):
         from urllib import quote
         from repoze.sendmail.interfaces import IMailDelivery
         from webob.exc import HTTPFound
@@ -169,8 +180,7 @@ class Test_register_view(_Base, unittest.TestCase):
         self.config.registry.registerUtility(DummyTokenGenerator(),
                                              ITokenGenerator)
         context = self._makeContext()
-        users = context.users = self._makeContext()
-        pending = users.pending_registrations = {}
+        cartouche = context.cartouche = self._makeCartouche()
         request = self._makeRequest(POST=POST, view_name='register.html')
 
         response = self._callFUT(context, request)
@@ -181,10 +191,11 @@ class Test_register_view(_Base, unittest.TestCase):
                             % quote(TO_EMAIL))
         self.assertEqual(delivery._sent[0], FROM_EMAIL)
         self.assertEqual(list(delivery._sent[1]), [TO_EMAIL])
-        info = pending[TO_EMAIL]
-        self.assertEqual(info['token'], 'RANDOM')
-        self.assertEqual(info['question'], 'petname')
-        self.assertEqual(info['answer'], 'Fido')
+        info = cartouche.pending[TO_EMAIL]
+        self.assertEqual(info.email, TO_EMAIL)
+        self.assertEqual(info.security_question, 'petname')
+        self.assertEqual(info.security_answer, 'Fido')
+        self.assertEqual(info.token, 'RANDOM')
 
 
 class Test_confirm_registration_view(_Base, unittest.TestCase):
@@ -197,13 +208,39 @@ class Test_confirm_registration_view(_Base, unittest.TestCase):
             request = self._makeRequest()
         return confirm_registration_view(context, request)
 
-    def test_GET(self):
-        from deform import Form
+    def test_GET_wo_email(self):
+        from webob.exc import HTTPFound
+
+        response = self._callFUT()
+
+        self.failUnless(isinstance(response, HTTPFound))
+        self.assertEqual(response.location,
+                         'http://example.com/register.html?message='
+                         'Please+register+first'
+                         '+or+visit+the+link+in+your+confirmation+e-mail.')
+
+    def test_GET_w_email_miss(self):
+        from webob.exc import HTTPFound
         EMAIL = 'phred@example.com'
         request = self._makeRequest(GET={'email': EMAIL})
 
+        response = self._callFUT(request=request)
+
+        self.failUnless(isinstance(response, HTTPFound))
+        self.assertEqual(response.location,
+                         'http://example.com/register.html?message='
+                         'Please+register+first.')
+
+    def test_GET_w_email_hit(self):
+        from deform import Form
+        EMAIL = 'phred@example.com'
+        context = self._makeContext()
+        cartouche = context.cartouche = self._makeCartouche()
+        cartouche.pending[EMAIL] = self._makeInfo()
+        request = self._makeRequest(GET={'email': EMAIL})
         mtr = self.config.testing_add_template('templates/main.pt')
-        info = self._callFUT(request=request)
+
+        info = self._callFUT(context, request)
 
         appstruct = info['appstruct']
         self.assertEqual(appstruct['email'], EMAIL)
