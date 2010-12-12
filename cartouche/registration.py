@@ -34,7 +34,9 @@ from cartouche.interfaces import ITokenGenerator
 
 templates_dir = resource_filename('cartouche', 'templates/')
 
+
 Form.set_zpt_renderer([templates_dir, deform_templates_dir])
+
 
 QUESTIONS = [
     ('color', 'What is your favorite color?'),
@@ -42,16 +44,20 @@ QUESTIONS = [
     ('petname', 'What was the name of your favorite childhood pet?'),
 ]
 
+
 class SecurityQuestion(Schema):
     question = SchemaNode(String(), widget=SelectWidget(values=QUESTIONS))
     answer = SchemaNode(String())
+
 
 class Signup(Schema):
     email = SchemaNode(String(), validator=Email())
     security = SecurityQuestion(title=" ")
 
+
 class ReadonlyTextWidget(TextInputWidget):
     template = readonly_template = 'readonly_text_input'
+
 
 class Confirm(Schema):
     email = SchemaNode(String(),
@@ -62,6 +68,7 @@ class Confirm(Schema):
                        description="Enter the token from the registration "
                                    "confirmation e-mail you received.")
 
+
 def _randomToken(request):
     generator = request.registry.queryUtility(ITokenGenerator)
     if generator:
@@ -71,6 +78,7 @@ def _randomToken(request):
 
 # By default, deliver e-mail via localhost, port 25.
 _delivery = DirectMailDelivery(SMTPMailer())
+
 
 REGISTRATION_EMAIL = """
 Thank you for registering.  
@@ -89,6 +97,7 @@ answer as you used on the initial registration form):
 Once you have entered the token, click the "Confirm" button to
 complete your registration.
 """
+
 
 def register_view(context, request):
     if 'register' in request.POST:
