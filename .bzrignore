@@ -1,0 +1,5 @@
+Data.fs*
+venv
+*.egg-info
+cartouche/templates/*.py
+docs/_build

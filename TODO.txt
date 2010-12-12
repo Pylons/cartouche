@@ -1,0 +1,58 @@
+``cartouche`` TOODs
+===================
+
+
+Registration
+------------
+
+- [_] Define "minimal" registration schema using ``deform``.
+
+      o ``email`` plus "security question" pair are initially-required fields.
+
+      o Seve entered data, along with a quasi-random token and an expiration
+        date, in a persistent mapping keyed by e-mail address.
+
+      o Redirect to URL with 'email' in query string.
+
+      o Send confirmation e-mail with token to be cut and pasted into
+        the second page.
+        
+      o Include a link to the confirm page in the mail:  if the user visits
+        the link, rather than leaving the browser window open, require that
+        they re-enter the security question and answer (?)?
+
+      o Allow configuration of additional registration-tie schema elements,
+        to be collected after e-mail is confirmed.  Or maybe just redirect
+        to the profile edit view?
+
+- [_] Add e-mail-confirmed user to ``ZODB`` user store
+
+      o Allow user to pick login name, defaulting to e-mail address.
+
+      o Hash password using ``zope.password`` utility.
+
+
+Login / Logout
+--------------
+
+- [_] Implement view following the ``repoze.who`` 2.0 docs.
+
+      o Compare passwords using ``zope.password`` utility.
+
+
+Password Recovery / Reset
+-------------------------
+
+- [_] TBD
+
+
+Profile Editing
+---------------
+
+- [_] Use configured "full" registration schema defined using ``deform``.
+
+
+User / Group Administration
+---------------------------
+
+- [_] TBD

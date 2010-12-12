@@ -1,0 +1,144 @@
+##############################################################################
+#
+# Copyright (c) 2010 Agendaless Consulting and Contributors.
+# All Rights Reserved.
+#
+# This software is subject to the provisions of the BSD-like license at
+# http://www.repoze.org/LICENSE.txt.  A copy of the license should accompany
+# this distribution.  THIS SOFTWARE IS PROVIDED "AS IS" AND ANY AND ALL
+# EXPRESS OR IMPLIED WARRANTIES ARE DISCLAIMED, INCLUDING, BUT NOT LIMITED TO,
+# THE IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, AGAINST INFRINGEMENT, AND
+# FITNESS FOR A PARTICULAR PURPOSE
+#
+##############################################################################
+from email.message import Message
+from pkg_resources import resource_filename
+
+from colander import Email
+from colander import Schema
+from colander import SchemaNode
+from colander import String
+from deform import Form
+from deform.template import default_dir as deform_templates_dir
+from deform.widget import SelectWidget
+from deform.widget import TextInputWidget
+from pyramid.renderers import get_renderer
+from pyramid.url import model_url
+from repoze.sendmail.interfaces import IMailDelivery
+from repoze.sendmail.delivery import DirectMailDelivery
+from repoze.sendmail.mailer import SMTPMailer
+from webob.exc import HTTPFound
+
+from cartouche.interfaces import ITokenGenerator
+
+
+templates_dir = resource_filename('cartouche', 'templates/')
+
+Form.set_zpt_renderer([templates_dir, deform_templates_dir])
+
+QUESTIONS = [
+    ('color', 'What is your favorite color?'),
+    ('borncity', 'In what city were you born?'),
+    ('petname', 'What was the name of your favorite childhood pet?'),
+]
+
+class SecurityQuestion(Schema):
+    question = SchemaNode(String(), widget=SelectWidget(values=QUESTIONS))
+    answer = SchemaNode(String())
+
+class Signup(Schema):
+    email = SchemaNode(String(), validator=Email())
+    security = SecurityQuestion(title=" ")
+
+class ReadonlyTextWidget(TextInputWidget):
+    template = readonly_template = 'readonly_text_input'
+
+class Confirm(Schema):
+    email = SchemaNode(String(),
+                       validator=Email(),
+                       widget=ReadonlyTextWidget(),
+                      )
+    token = SchemaNode(String(),
+                       description="Enter the token from the registration "
+                                   "confirmation e-mail you received.")
+
+def _randomToken(request):
+    generator = request.registry.queryUtility(ITokenGenerator)
+    if generator:
+        return generator.getToken()
+    return 'XYZZY' # XXX
+
+
+# By default, deliver e-mail via localhost, port 25.
+_delivery = DirectMailDelivery(SMTPMailer())
+
+REGISTRATION_EMAIL = """
+Thank you for registering.  
+
+In your browser, please copy and paste the following string
+into the 'Token' field:
+
+  %(token)s
+
+If you do not still have that page open, you can visit it via
+this URL (you will need to re-enter the same security question and
+answer as you used on the initial registration form):
+
+  %(confirmation_url)s
+
+Once you have entered the token, click the "Confirm" button to
+complete your registration.
+"""
+
+def register_view(context, request):
+    if 'register' in request.POST:
+        email = request.POST['email']
+        security = request.POST['security']
+        token = security['token'] = _randomToken(request)
+        pending_registrations = context.users.pending_registrations
+        pending_registrations[email] = security
+        from_addr = request.registry.settings['from_addr']
+        delivery = request.registry.queryUtility(IMailDelivery) or _delivery
+        confirmation_url = model_url(context, request, request.view_name,
+                                     query=dict(email=email))
+        body = REGISTRATION_EMAIL % {'token': token,
+                                     'confirmation_url': confirmation_url}
+        message = Message()
+        message.set_payload(body)
+        delivery.send(from_addr, [email], message)
+        confirmation_url = model_url(context, request, request.view_name,
+                                     query=dict(email=email))
+        return HTTPFound(location=confirmation_url)
+
+    main_template = get_renderer('templates/main.pt')
+    return {'main_template': main_template.implementation(),
+            'form': Form(Signup(), buttons=('register',)),
+            'appstruct': None,
+           }
+
+
+def confirm_registration_view(context, request):
+    if 'confirm' in request.POST:
+        email = request.POST['email']
+        security = request.POST['security']
+        token = security['token'] = _randomToken(request)
+        pending_registrations = context.users.pending_registrations
+        pending_registrations[email] = security
+        from_addr = request.registry.settings['from_addr']
+        delivery = request.registry.queryUtility(IMailDelivery) or _delivery
+        confirmation_url = model_url(context, request, request.view_name,
+                                     query=dict(email=email))
+        body = REGISTRATION_EMAIL % {'token': token,
+                                     'confirmation_url': confirmation_url}
+        message = Message()
+        message.set_payload(body)
+        delivery.send(from_addr, [email], message)
+        confirmation_url = model_url(context, request, request.view_name,
+                                     query=dict(email=email))
+        return HTTPFound(location=confirmation_url)
+
+    main_template = get_renderer('templates/main.pt')
+    return {'main_template': main_template.implementation(),
+            'form': Form(Confirm(), buttons=('confirm',)),
+            'appstruct': {'email': request.GET['email']}
+           }

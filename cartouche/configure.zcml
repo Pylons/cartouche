@@ -1,0 +1,30 @@
+<configure xmlns="http://pylonshq.com/pyramid">
+
+  <!-- this must be included for the view declarations to work -->
+  <include package="pyramid.includes" />
+
+  <view
+     context=".models.Root"
+     view=".registration.register_view"
+     renderer="templates/register.pt"
+     name="register.html"
+     />
+
+  <view
+     context=".models.Root"
+     view=".registration.confirm_registration_view"
+     renderer="templates/register.pt"
+     name="confirm_registration.html"
+     />
+
+  <static
+     name="static"
+     path="static"
+     />
+
+  <static
+     name="deform"
+     path="deform:static"
+     />
+
+</configure>
