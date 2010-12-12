@@ -13,6 +13,7 @@
 ##############################################################################
 from email.message import Message
 from pkg_resources import resource_filename
+from uuid import uuid4
 
 from colander import Email
 from colander import Schema
@@ -111,11 +112,11 @@ class Confirm(Schema):
                                    "confirmation e-mail you received.")
 
 
-def _randomToken(request):
+def getRandomToken(request):
     generator = request.registry.queryUtility(ITokenGenerator)
     if generator:
         return generator.getToken()
-    return 'XYZZY' # XXX
+    return str(uuid4())
 
 
 # By default, deliver e-mail via localhost, port 25.
@@ -149,7 +150,7 @@ def register_view(context, request):
             pending = PendingRegistrations(context)
         email = request.POST['email']
         security = request.POST['security']
-        token = _randomToken(request)
+        token = getRandomToken(request)
         pending.set(email, security['question'], security['answer'], token)
 
         from_addr = request.registry.settings['from_addr']
@@ -180,22 +181,8 @@ REGISTER_OR_VISIT = ('Please register first '
 def confirm_registration_view(context, request):
     if 'confirm' in request.POST:
         email = request.POST['email']
-        security = request.POST['security']
-        token = security['token'] = _randomToken(request)
-        pending_registrations = context.users.pending_registrations
-        pending_registrations[email] = security
-        from_addr = request.registry.settings['from_addr']
-        delivery = request.registry.queryUtility(IMailDelivery) or _delivery
-        confirmation_url = model_url(context, request, request.view_name,
-                                     query=dict(email=email))
-        body = REGISTRATION_EMAIL % {'token': token,
-                                     'confirmation_url': confirmation_url}
-        message = Message()
-        message.set_payload(body)
-        delivery.send(from_addr, [email], message)
-        confirmation_url = model_url(context, request, request.view_name,
-                                     query=dict(email=email))
-        return HTTPFound(location=confirmation_url)
+        token = request.POST['token']
+        # TODO
 
     email = request.GET.get('email')
     if email is None:
