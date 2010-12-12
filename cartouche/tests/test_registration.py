@@ -33,6 +33,95 @@ class _Base(object):
         return DummyRequest(**kw)
 
 
+class PendingRegistrationsTests(_Base, unittest.TestCase):
+
+    def _getTargetClass(self):
+        from cartouche.registration import PendingRegistrations
+        return PendingRegistrations
+
+    def _makeOne(self, context=None):
+        if context is None:
+            context = self._makeContext()
+        return self._getTargetClass()(context)
+
+    def _makeInfo(self, email='phred@example.com',
+                  question='question', answer='answer', token='token'):
+        class DummyRegistrationInfo(object):
+            def __init__(self, **kw):
+                self.__dict__.update(kw)
+        return DummyRegistrationInfo(email=email,
+                                     security_question=question,
+                                     security_answer=answer,
+                                     token=token)
+
+    def _makeCartouche(self):
+        class DummyCartouche(object):
+            def __init__(self):
+                self.pending = {}
+        return DummyCartouche()
+
+    def _verifyInfo(self, info):
+        from cartouche.interfaces import IRegistrationInfo
+        self.failUnless(IRegistrationInfo.providedBy(info))
+        self.assertEqual(info.email, 'phred@example.com')
+        self.assertEqual(info.security_question, 'question')
+        self.assertEqual(info.security_answer, 'answer')
+        self.assertEqual(info.token, 'token')
+
+    def test_class_conforms_to_IPendingRegistrations(self):
+        from zope.interface.verify import verifyClass
+        from cartouche.interfaces import IPendingRegistrations
+        verifyClass(IPendingRegistrations, self._getTargetClass())
+
+    def test_instance_conforms_to_IPendingRegistrations(self):
+        from zope.interface.verify import verifyObject
+        from cartouche.interfaces import IPendingRegistrations
+        verifyObject(IPendingRegistrations, self._makeOne())
+
+    def test_set_context_is_root_no_cartouche(self):
+        context = self._makeContext()
+        adapter = self._makeOne(context)
+        adapter.set('phred@example.com', 'question', 'answer', 'token')
+        self._verifyInfo(context.cartouche.pending['phred@example.com'])
+
+    def test_set_context_is_root_w_cartouche(self):
+        context = self._makeContext()
+        cartouche = context.cartouche = self._makeCartouche()
+        adapter = self._makeOne(context)
+        adapter.set('phred@example.com', 'question', 'answer', 'token')
+        self._verifyInfo(cartouche.pending['phred@example.com'])
+
+    def test_set_context_is_not_root(self):
+        root = self._makeContext()
+        cartouche = root.cartouche = self._makeCartouche()
+        parent = root['parent'] = self._makeContext()
+        context = parent['context'] = self._makeContext()
+        adapter = self._makeOne(context)
+        adapter.set('phred@example.com', 'question', 'answer', 'token')
+        self._verifyInfo(cartouche.pending['phred@example.com'])
+
+    def test_get_context_is_root_no_cartouche(self):
+        context = self._makeContext()
+        adapter = self._makeOne(context)
+        self.assertEqual(adapter.get('phred@example.com'), None)
+        self.failIf('cartouche' in context.__dict__)
+
+    def test_get_context_is_root_w_cartouche_miss(self):
+        context = self._makeContext()
+        cartouche = context.cartouche = self._makeCartouche()
+        adapter = self._makeOne(context)
+        self.assertEqual(adapter.get('phred@example.com'), None)
+        self.failIf('phred@example.com' in cartouche.pending)
+
+    def test_get_context_is_root_w_cartouche_hit(self):
+        context = self._makeContext()
+        cartouche = context.cartouche = self._makeCartouche()
+        info = self._makeInfo()
+        cartouche.pending['phred@example.com'] = info
+        adapter = self._makeOne(context)
+        self.failUnless(adapter.get('phred@example.com') is info)
+
+
 class Test_register_view(_Base, unittest.TestCase):
 
     def _callFUT(self, context=None, request=None):

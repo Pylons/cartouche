@@ -28,13 +28,55 @@ from repoze.sendmail.interfaces import IMailDelivery
 from repoze.sendmail.delivery import DirectMailDelivery
 from repoze.sendmail.mailer import SMTPMailer
 from webob.exc import HTTPFound
+from zope.interface import implements
 
+from cartouche.interfaces import IPendingRegistrations
 from cartouche.interfaces import ITokenGenerator
 
 
+class PendingRegistrations(object):
+    """ Default implementation for ZODB-based storage.
+
+    Stores registration info in a BTree named 'pending', an attribute of the
+    root object's 'cartouche' attribute.
+    """
+    implements(IPendingRegistrations)
+
+    def __init__(self, context):
+        self.context = context
+
+    def set(self, email, security_question, security_answer, token):
+        """ See IPendingRegistrations.
+        """
+        info = self._makeInfo(email,
+                              security_question, security_answer, token)
+        self._getCartouche(True).pending[email] = info
+
+    def get(self, email, default=None):
+        """ See IPendingRegistrations.
+        """
+        cartouche = self._getCartouche()
+        if cartouche is None:
+            return default
+        return cartouche.pending.get(email, default)
+
+    def _getCartouche(self, create=False):
+        # Import here to allow reuse of views without stock models.
+        from pyramid.traversal import find_root
+        from cartouche.models import Cartouche
+        root = find_root(self.context)
+        cartouche = getattr(root, 'cartouche', None)
+        if cartouche is None and create:
+            cartouche = root.cartouche = Cartouche()
+        return cartouche
+
+    def _makeInfo(self, email, security_question, security_answer, token):
+        # Import here to allow reuse of views without stock models.
+        from cartouche.models import RegistrationInfo as RI
+        return RI(email, security_question, security_answer, token)
+
+
 templates_dir = resource_filename('cartouche', 'templates/')
-
-
 Form.set_zpt_renderer([templates_dir, deform_templates_dir])
 
 

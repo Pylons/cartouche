@@ -29,16 +29,8 @@ class IRegistrationInfo(Interface):
 class IPendingRegistrations(Interface):
     """ Adapter interface:  store / retrieve pending registration info.
     """
-    def __setitem__(email, info):
+    def set(email, security_qusetion, security_answer, token):
         """ Store registration info for 'email'.
-
-        - 'info' must implement IRegistrationInfo.
-        """
-
-    def __getitem__(email):
-        """ Return IRegistrationInfo for 'email'.
-
-        Raise KeyError if not found.
         """
 
     def get(email, default=None):
