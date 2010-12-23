@@ -1,0 +1,37 @@
+<configure xmlns="http://pylonshq.com/pyramid">
+
+ <!-- this must be included for the view declarations to work -->
+ <include package="pyramid.includes" />
+
+ <utility provides="repoze.sendmail.interfaces.IMailDelivery"
+          factory=".testing.FauxMailDelivery" />
+
+ <adapter provides="cartouche.interfaces.IPendingRegistrations"
+          for="*"
+          factory=".testing.FauxPendingRegistrations" />
+
+ <view
+    context=".models.Root"
+    name="register.html"
+    view=".registration.register_view"
+    renderer="templates/register.pt"
+    />
+
+ <view
+    context=".interfaces.IRoot"
+    name="confirm_registration.html"
+    view=".registration.confirm_registration_view"
+    renderer="templates/register.pt"
+    />
+
+  <static
+     name="static"
+     path="static"
+     />
+
+  <static
+     name="deform"
+     path="deform:static"
+     />
+
+</configure>
