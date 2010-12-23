@@ -1,6 +1,6 @@
 <metal:body metal:use-macro="main_template">
  <metal:slot metal:fill-slot="main">
-  <div tal:content="structure form.render(appstruct)">
+  <div tal:content="structure rendered_form">
    FORM GOES HERE
   </div>
  </metal:slot>

@@ -19,7 +19,9 @@ from colander import Email
 from colander import Schema
 from colander import SchemaNode
 from colander import String
+from colander import null
 from deform import Form
+from deform import ValidationFailure
 from deform.template import default_dir as deform_templates_dir
 from deform.widget import SelectWidget
 from deform.widget import TextInputWidget
@@ -143,33 +145,38 @@ complete your registration.
 
 
 def register_view(context, request):
+    form = Form(Signup(), buttons=('register',))
+    rendered_form = form.render(null)
     if 'register' in request.POST:
-        pending = request.registry.queryAdapter(context,
-                                                IPendingRegistrations)
-        if pending is None:
-            pending = PendingRegistrations(context)
-        email = request.POST['email']
-        security = request.POST['security']
-        token = getRandomToken(request)
-        pending.set(email, security['question'], security['answer'], token)
+        try:
+            appstruct = form.validate(request.POST.items())
+        except ValidationFailure, e:
+            rendered_form = e.render()
+        else:
+            pending = request.registry.queryAdapter(context,
+                                                    IPendingRegistrations)
+            if pending is None:
+                pending = PendingRegistrations(context)
+            email = appstruct['email']
+            security = appstruct['security']
+            token = getRandomToken(request)
+            pending.set(email, security['question'], security['answer'], token)
 
-        from_addr = request.registry.settings['from_addr']
-        delivery = request.registry.queryUtility(IMailDelivery) or _delivery
-        confirmation_url = model_url(context, request, request.view_name,
-                                     query=dict(email=email))
-        body = REGISTRATION_EMAIL % {'token': token,
-                                     'confirmation_url': confirmation_url}
-        message = Message()
-        message.set_payload(body)
-        delivery.send(from_addr, [email], message)
-        confirmation_url = model_url(context, request, request.view_name,
-                                     query=dict(email=email))
-        return HTTPFound(location=confirmation_url)
+            from_addr = request.registry.settings['from_addr']
+            delivery = request.registry.queryUtility(IMailDelivery) or _delivery
+            confirmation_url = model_url(context, request,
+                                        "confirm_registration.html",
+                                        query=dict(email=email))
+            body = REGISTRATION_EMAIL % {'token': token,
+                                        'confirmation_url': confirmation_url}
+            message = Message()
+            message.set_payload(body)
+            delivery.send(from_addr, [email], message)
+            return HTTPFound(location=confirmation_url)
 
     main_template = get_renderer('templates/main.pt')
     return {'main_template': main_template.implementation(),
-            'form': Form(Signup(), buttons=('register',)),
-            'appstruct': None,
+            'rendered_form': rendered_form,
             'message': request.GET.get('message'),
            }
 
@@ -180,28 +187,45 @@ REGISTER_OR_VISIT = ('Please register first '
                      'or visit the link in your confirmation e-mail.')
 
 def confirm_registration_view(context, request):
-    if 'confirm' in request.POST:
-        email = request.POST['email']
-        token = request.POST['token']
-        # TODO
-
-    email = request.GET.get('email')
-    if email is None:
-        return HTTPFound(location=model_url(context, request, 'register.html',
-                                            query={'message':
-                                                        REGISTER_OR_VISIT}))
+    form = Form(Confirm(), buttons=('confirm',))
     pending = request.registry.queryAdapter(context,
                                             IPendingRegistrations)
     if pending is None:
         pending = PendingRegistrations(context)
-
-    if pending.get(email) is None:
-        return HTTPFound(location=model_url(context, request, 'register.html',
-                                            query={'message':
-                                                        REGISTER_FIRST}))
+    if 'confirm' in request.POST:
+        try:
+            appstruct = form.validate(request.POST.items())
+        except ValidationFailure, e:
+            rendered_form = e.render()
+        else:
+            email = appstruct['email']
+            token = appstruct['token']
+            info = pending.get(email)
+            if info and token == pending.get(email).token:
+                # TODO:  transfer pending info to permanent store
+                # TODO:  use who API to remember identity.
+                welcome_url = request.registry.settings.get('welcome_url')
+                if welcome_url is None:
+                    welcome_url = model_url(context, request, 'welcome.html')
+                return HTTPFound(location=welcome_url)
+            else:
+                # XXX do what?
+                rendered_form = '<h1>TOKEN MISMATCH</h1>'
+    else:
+        email = request.GET.get('email')
+        if email is None:
+            return HTTPFound(location=model_url(context, request,
+                                                'register.html',
+                                                query={'message':
+                                                        REGISTER_OR_VISIT}))
+        if pending.get(email) is None:
+            return HTTPFound(location=model_url(context, request,
+                                                'register.html',
+                                                query={'message':
+                                                            REGISTER_FIRST}))
+        rendered_form = form.render({'email': email})
 
     main_template = get_renderer('templates/main.pt')
     return {'main_template': main_template.implementation(),
-            'form': Form(Confirm(), buttons=('confirm',)),
-            'appstruct': {'email': email},
+            'rendered_form': rendered_form,
            }
