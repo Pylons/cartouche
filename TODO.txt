@@ -21,15 +21,15 @@ Registration
         the link, rather than leaving the browser window open, require that
         they re-enter the security question and answer (?)?
 
-      o Allow configuration of additional registration-tie schema elements,
-        to be collected after e-mail is confirmed.  Or maybe just redirect
-        to the profile edit view?
-
-- [_] Add e-mail-confirmed user to ``ZODB`` user store
+- [_] When token confirmed, add e-mail-confirmed user to ``ZODB`` user store.
 
       o Allow user to pick login name, defaulting to e-mail address.
 
+      o Allow the user to enter and confirm a password.
+
       o Hash password using ``zope.password`` utility.
+
+      o Auto-login the user using the ``repoze.who`` API.
 
 
 Login / Logout
