@@ -15,6 +15,10 @@ from zope.interface import Attribute
 from zope.interface import Interface
 
 
+class IRoot(Interface):
+    pass
+
+
 class ICartouche(Interface):
     pending = Attribute(u'Pending registrations, keyed by email')
 

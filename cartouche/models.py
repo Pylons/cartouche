@@ -17,12 +17,16 @@ from persistent import Persistent
 from persistent.mapping import PersistentMapping
 from zope.interface import implements
 
+from cartouche.interfaces import IRoot
 from cartouche.interfaces import ICartouche
 from cartouche.interfaces import IRegistrationInfo
 
 
 class Root(PersistentMapping):
+    implements(IRoot)
     __parent__ = __name__ = None
+    def __repr__(self):
+        return '<Root object;  keys: %s>' % ', '.join(self.keys())
 
 
 class Cartouche(Persistent):
