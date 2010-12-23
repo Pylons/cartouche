@@ -31,6 +31,9 @@ class FauxPendingRegistrations(object):
 
 
     def set(self, email, security_question, security_answer, token):
+        print DIVIDER
+        print 'Setting pending registration for email: %s' % email
+        print DIVIDER
         info = Dummy(email=email,
                      security_question=security_question,
                      security_answer=security_answer,
