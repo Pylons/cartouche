@@ -40,9 +40,8 @@ class RegistrationInfoTests(unittest.TestCase):
         from cartouche.models import RegistrationInfo
         return RegistrationInfo
 
-    def _makeOne(self, email='phred@example.com',
-                 question='question', answer='answer', token='token'):
-        return self._getTargetClass()(email, question, answer, token)
+    def _makeOne(self, email='phred@example.com', token='token'):
+        return self._getTargetClass()(email, token)
 
     def test_class_conforms_to_IRegistrationInfo(self):
         from zope.interface.verify import verifyClass

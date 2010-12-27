@@ -48,11 +48,10 @@ class PendingRegistrations(object):
     def __init__(self, context):
         self.context = context
 
-    def set(self, email, security_question, security_answer, token):
+    def set(self, email, token):
         """ See IPendingRegistrations.
         """
-        info = self._makeInfo(email,
-                              security_question, security_answer, token)
+        info = self._makeInfo(email, token)
         self._getCartouche(True).pending[email] = info
 
     def get(self, email, default=None):
@@ -73,10 +72,10 @@ class PendingRegistrations(object):
             cartouche = root.cartouche = Cartouche()
         return cartouche
 
-    def _makeInfo(self, email, security_question, security_answer, token):
+    def _makeInfo(self, email, token):
         # Import here to allow reuse of views without stock models.
         from cartouche.models import RegistrationInfo as RI
-        return RI(email, security_question, security_answer, token)
+        return RI(email, token)
 
 
 templates_dir = resource_filename('cartouche', 'templates/')
@@ -97,7 +96,6 @@ class SecurityQuestion(Schema):
 
 class Signup(Schema):
     email = SchemaNode(String(), validator=Email())
-    security = SecurityQuestion(title=" ")
 
 
 class ReadonlyTextWidget(TextInputWidget):
@@ -158,9 +156,8 @@ def register_view(context, request):
             if pending is None:
                 pending = PendingRegistrations(context)
             email = appstruct['email']
-            security = appstruct['security']
             token = getRandomToken(request)
-            pending.set(email, security['question'], security['answer'], token)
+            pending.set(email, token)
 
             from_addr = request.registry.settings['from_addr']
             delivery = request.registry.queryUtility(IMailDelivery) or _delivery

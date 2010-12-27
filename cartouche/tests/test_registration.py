@@ -53,8 +53,6 @@ class _Base(object):
         from cartouche.interfaces import IRegistrationInfo
         self.failUnless(IRegistrationInfo.providedBy(info))
         self.assertEqual(info.email, email)
-        self.assertEqual(info.security_question, question)
-        self.assertEqual(info.security_answer, answer)
         self.assertEqual(info.token, token)
 
 
@@ -83,7 +81,7 @@ class PendingRegistrationsTests(_Base, unittest.TestCase):
         context = self._makeContext()
         adapter = self._makeOne(context)
 
-        adapter.set('phred@example.com', 'question', 'answer', 'token')
+        adapter.set('phred@example.com', 'token')
 
         self._verifyInfo(context.cartouche.pending['phred@example.com'])
 
@@ -92,7 +90,7 @@ class PendingRegistrationsTests(_Base, unittest.TestCase):
         cartouche = context.cartouche = self._makeCartouche()
         adapter = self._makeOne(context)
 
-        adapter.set('phred@example.com', 'question', 'answer', 'token')
+        adapter.set('phred@example.com', 'token')
 
         self._verifyInfo(cartouche.pending['phred@example.com'])
 
@@ -103,7 +101,7 @@ class PendingRegistrationsTests(_Base, unittest.TestCase):
         context = parent['context'] = self._makeContext()
         adapter = self._makeOne(context)
 
-        adapter.set('phred@example.com', 'question', 'answer', 'token')
+        adapter.set('phred@example.com', 'token')
 
         self._verifyInfo(cartouche.pending['phred@example.com'])
 
@@ -168,19 +166,18 @@ class Test_register_view(_Base, unittest.TestCase):
         return register_view(context, request)
 
     def test_GET(self):
-        from deform import Form
-
+        import re
+        INPUT = re.compile('<input.*name="(?P<name>\w+)"', re.MULTILINE)
         mtr = self.config.testing_add_template('templates/main.pt')
         info = self._callFUT()
 
         main_template = info['main_template']
         self.failUnless(main_template is mtr.implementation())
         self.failUnless(info.get('appstruct') is None)
-        form = info['form']
-        self.failUnless(isinstance(form, Form))
-        self.assertEqual(len(form.children), 2)
-        self.assertEqual(form.children[0].name, 'email')
-        self.assertEqual(form.children[1].name, 'security')
+        rendered_form = info['rendered_form']
+        inputs = [x for x in INPUT.findall(rendered_form)
+                        if not x.startswith('_')]
+        self.assertEqual(inputs, ['email'])
         self.assertEqual(info['message'], None)
 
     def test_GET_w_message(self):
@@ -224,8 +221,6 @@ class Test_register_view(_Base, unittest.TestCase):
         self.assertEqual(list(delivery._sent[1]), [TO_EMAIL])
         info = cartouche.pending[TO_EMAIL]
         self.assertEqual(info.email, TO_EMAIL)
-        self.assertEqual(info.security_question, 'petname')
-        self.assertEqual(info.security_answer, 'Fido')
         self.assertEqual(info.token, 'RANDOM')
 
 

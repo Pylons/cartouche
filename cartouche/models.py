@@ -39,8 +39,6 @@ class Cartouche(Persistent):
 class RegistrationInfo(Persistent):
     implements(IRegistrationInfo)
 
-    def __init__(self, email, security_question, security_answer, token):
+    def __init__(self, email, token):
         self.email = email
-        self.security_question = security_question
-        self.security_answer = security_answer
         self.token = token

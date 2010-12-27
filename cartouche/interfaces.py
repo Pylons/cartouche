@@ -25,15 +25,13 @@ class ICartouche(Interface):
 
 class IRegistrationInfo(Interface):
     email = Attribute(u'Registered e-mail address')
-    security_question = Attribute(u'Question selected at registration')
-    security_answer = Attribute(u'Answer provided at registration')
     token = Attribute(u'Token generated at registration')
 
 
 class IPendingRegistrations(Interface):
     """ Adapter interface:  store / retrieve pending registration info.
     """
-    def set(email, security_qusetion, security_answer, token):
+    def set(email, token):
         """ Store registration info for 'email'.
         """
 
