@@ -52,8 +52,20 @@ class IRegistrations(Interface):
         """ Store registration info for 'key'.
         """
 
+    def set_record(key, record):
+        """ Store registration info for 'key'.
+
+        Allows sharing persistent 'record' between differently-keyed stores.
+        """
+
     def get(key, default=None):
         """ Return info for 'key'.
 
         Return 'default' if not found
+        """
+
+    def remove(key):
+        """ Remove info for 'key'.
+
+        Raise KeyError if not found.
         """

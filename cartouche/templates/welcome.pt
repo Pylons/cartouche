@@ -1,0 +1,21 @@
+<metal:body metal:use-macro="main_template">
+ <metal:slot metal:fill-slot="main">
+
+   <h1>Welcome to the site!</h1>
+
+   <p> You are registered using your e-mail address,
+       <em>${authenticated_user}</em> as your login ID.
+       Please take a moment to set up your account: </p>
+
+   <ul>
+    <li>
+     <a href="/update_login.html"
+     >Update your login, password, and security question</a></li>
+    <li>
+     <a href="/edit_profile.html"
+     >Update your profile</a></li>
+   </ul>
+
+ </metal:slot>
+</metal:body>
+

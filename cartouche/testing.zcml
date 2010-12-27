@@ -11,6 +11,16 @@
           for="*"
           factory=".testing.FauxPendingRegistrations" />
 
+ <adapter provides="cartouche.interfaces.IRegistrations"
+          name="by_email"
+          for="*"
+          factory=".testing.FauxByEmailRegistrations" />
+
+ <adapter provides="cartouche.interfaces.IRegistrations"
+          name="by_login"
+          for="*"
+          factory=".testing.FauxByLoginRegistrations" />
+
  <view
     context=".models.Root"
     name="register.html"
@@ -23,6 +33,13 @@
     name="confirm_registration.html"
     view=".registration.confirm_registration_view"
     renderer="templates/register.pt"
+    />
+
+ <view
+    context=".interfaces.IRoot"
+    name="welcome.html"
+    view=".registration.welcome_view"
+    renderer="templates/welcome.pt"
     />
 
   <static

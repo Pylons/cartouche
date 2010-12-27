@@ -45,31 +45,62 @@ class _Base(object):
     def _registerPendingRegistrations(self):
         from cartouche.interfaces import IRegistrations
         pending = {}
-        class DummyPendingRegistrations:
+        class DummyRegistrationsByEmail:
             def __init__(self, context):
                 pass
             def get(self, key, default=None):
                 return pending.get(key, default)
             def set(self, key, **kw):
                 pending[key] = Dummy(email=key, **kw)
-        self.config.registry.registerAdapter(DummyPendingRegistrations,
+            def set_record(self, key, record):
+                pending[key] = record
+            def remove(self, key):
+                del pending[key]
+        self.config.registry.registerAdapter(DummyRegistrationsByEmail,
                                              (None,), IRegistrations,
                                              name='pending')
         return pending
 
-    def _verifyInfo(self, info, email='phred@example.com',
-                  question='question', answer='answer', token='token'):
-        from cartouche.interfaces import IPendingRegistrationInfo
-        self.failUnless(IPendingRegistrationInfo.providedBy(info))
-        self.assertEqual(info.email, email)
-        self.assertEqual(info.token, token)
+    def _registerByLogin(self):
+        from cartouche.interfaces import IRegistrations
+        by_login = {}
+        class DummyRegistrationsByLogin:
+            def __init__(self, context):
+                pass
+            def get(self, key, default=None):
+                return by_login.get(key, default)
+            def set(self, key, **kw):
+                by_login[key] = Dummy(login=key, **kw)
+            def set_record(self, key, record):
+                by_login[key] = record
+            def remove(self, key):
+                del by_login[key]
+        self.config.registry.registerAdapter(DummyRegistrationsByLogin,
+                                             (None,), IRegistrations,
+                                             name='by_login')
+        return by_login
+
+    def _registerByEmail(self):
+        from cartouche.interfaces import IRegistrations
+        by_email = {}
+        class DummyPendingRegistrations:
+            def __init__(self, context):
+                pass
+            def get(self, key, default=None):
+                return by_email.get(key, default)
+            def set(self, key, **kw):
+                by_email[key] = Dummy(email=key, **kw)
+            def set_record(self, key, record):
+                by_email[key] = record
+            def remove(self, key):
+                del by_email[key]
+        self.config.registry.registerAdapter(DummyPendingRegistrations,
+                                             (None,), IRegistrations,
+                                             name='by_email')
+        return by_email
 
 
-class PendingRegistrationsTests(_Base, unittest.TestCase):
-
-    def _getTargetClass(self):
-        from cartouche.registration import PendingRegistrations
-        return PendingRegistrations
+class _RegistrationsBase(_Base):
 
     def _makeOne(self, context=None):
         if context is None:
@@ -80,7 +111,8 @@ class PendingRegistrationsTests(_Base, unittest.TestCase):
         class DummyCartouche(object):
             def __init__(self):
                 self.pending = {}
-                self.registered = {}
+                self.by_login = {}
+                self.by_email = {}
         return DummyCartouche()
 
     def test_class_conforms_to_IRegistrations(self):
@@ -92,6 +124,19 @@ class PendingRegistrationsTests(_Base, unittest.TestCase):
         from zope.interface.verify import verifyObject
         from cartouche.interfaces import IRegistrations
         verifyObject(IRegistrations, self._makeOne())
+
+
+class PendingRegistrationsTests(_RegistrationsBase, unittest.TestCase):
+
+    def _getTargetClass(self):
+        from cartouche.registration import PendingRegistrations
+        return PendingRegistrations
+
+    def _verifyInfo(self, info, email='phred@example.com', token='token'):
+        from cartouche.interfaces import IPendingRegistrationInfo
+        self.failUnless(IPendingRegistrationInfo.providedBy(info))
+        self.assertEqual(info.email, email)
+        self.assertEqual(info.token, token)
 
     def test_set_context_is_root_no_cartouche(self):
         context = self._makeContext()
@@ -121,6 +166,38 @@ class PendingRegistrationsTests(_Base, unittest.TestCase):
 
         self._verifyInfo(cartouche.pending['phred@example.com'])
 
+    def test_set_record_context_is_root_no_cartouche(self):
+        context = self._makeContext()
+        adapter = self._makeOne(context)
+
+        record = object()
+        adapter.set_record('phred@example.com', record)
+
+        self.failUnless(context.cartouche.pending['phred@example.com']
+                            is record)
+
+    def test_set_record_context_is_root_w_cartouche(self):
+        context = self._makeContext()
+        cartouche = context.cartouche = self._makeCartouche()
+        adapter = self._makeOne(context)
+
+        record = object()
+        adapter.set_record('phred@example.com', record)
+
+        self.failUnless(cartouche.pending['phred@example.com'] is record)
+
+    def test_set_record_context_is_not_root(self):
+        root = self._makeContext()
+        cartouche = root.cartouche = self._makeCartouche()
+        parent = root['parent'] = self._makeContext()
+        context = parent['context'] = self._makeContext()
+        adapter = self._makeOne(context)
+
+        record = object()
+        adapter.set_record('phred@example.com', record)
+
+        self.failUnless(cartouche.pending['phred@example.com'] is record)
+
     def test_get_context_is_root_no_cartouche(self):
         context = self._makeContext()
         adapter = self._makeOne(context)
@@ -147,6 +224,290 @@ class PendingRegistrationsTests(_Base, unittest.TestCase):
         adapter = self._makeOne(context)
 
         self.failUnless(adapter.get('phred@example.com') is info)
+
+    def test_remove_context_is_root_no_cartouche(self):
+        context = self._makeContext()
+        adapter = self._makeOne(context)
+
+        self.assertRaises(KeyError, adapter.remove, 'phred@example.com')
+
+    def test_remove_context_is_root_w_cartouche_miss(self):
+        context = self._makeContext()
+        cartouche = context.cartouche = self._makeCartouche()
+        adapter = self._makeOne(context)
+
+        self.assertRaises(KeyError, adapter.remove, 'phred@example.com')
+
+    def test_remove_context_is_root_w_cartouche_hit(self):
+        context = self._makeContext()
+        cartouche = context.cartouche = self._makeCartouche()
+        cartouche.pending['phred@example.com'] = object()
+        adapter = self._makeOne(context)
+
+        adapter.remove('phred@example.com')
+
+        self.failIf('phred@example.com' in cartouche.pending)
+
+
+class ByEmailRegistrationsTests(_RegistrationsBase, unittest.TestCase):
+
+    def _getTargetClass(self):
+        from cartouche.registration import ByEmailRegistrations
+        return ByEmailRegistrations
+
+    def _verifyInfo(self, info, email='phred@example.com',
+                    login='login', password='password',
+                    question='question', answer='answer'):
+        from cartouche.interfaces import IRegistrationInfo
+        self.failUnless(IRegistrationInfo.providedBy(info))
+        self.assertEqual(info.email, email)
+        self.assertEqual(info.login, login)
+        self.assertEqual(info.password, password)
+        self.assertEqual(info.security_question, question)
+        self.assertEqual(info.security_answer, answer)
+
+    def test_set_context_is_root_no_cartouche(self):
+        context = self._makeContext()
+        adapter = self._makeOne(context)
+
+        adapter.set('phred@example.com', login='login', password='password',
+                    security_question='question', security_answer='answer')
+
+        self._verifyInfo(context.cartouche.by_email['phred@example.com'])
+
+    def test_set_context_is_root_w_cartouche(self):
+        context = self._makeContext()
+        cartouche = context.cartouche = self._makeCartouche()
+        adapter = self._makeOne(context)
+
+        adapter.set('phred@example.com', login='login', password='password',
+                    security_question='question', security_answer='answer')
+
+        self._verifyInfo(cartouche.by_email['phred@example.com'])
+
+    def test_set_context_is_not_root(self):
+        root = self._makeContext()
+        cartouche = root.cartouche = self._makeCartouche()
+        parent = root['parent'] = self._makeContext()
+        context = parent['context'] = self._makeContext()
+        adapter = self._makeOne(context)
+
+        adapter.set('phred@example.com', login='login', password='password',
+                    security_question='question', security_answer='answer')
+
+        self._verifyInfo(cartouche.by_email['phred@example.com'])
+
+    def test_set_record_context_is_root_no_cartouche(self):
+        context = self._makeContext()
+        adapter = self._makeOne(context)
+
+        record = object()
+        adapter.set_record('phred@example.com', record)
+
+        self.failUnless(context.cartouche.by_email['phred@example.com']
+                            is record)
+
+    def test_set_record_context_is_root_w_cartouche(self):
+        context = self._makeContext()
+        cartouche = context.cartouche = self._makeCartouche()
+        adapter = self._makeOne(context)
+
+        record = object()
+        adapter.set_record('phred@example.com', record)
+
+        self.failUnless(cartouche.by_email['phred@example.com'] is record)
+
+    def test_set_record_context_is_not_root(self):
+        root = self._makeContext()
+        cartouche = root.cartouche = self._makeCartouche()
+        parent = root['parent'] = self._makeContext()
+        context = parent['context'] = self._makeContext()
+        adapter = self._makeOne(context)
+
+        record = object()
+        adapter.set_record('phred@example.com', record)
+
+        self.failUnless(cartouche.by_email['phred@example.com'] is record)
+
+    def test_get_context_is_root_no_cartouche(self):
+        context = self._makeContext()
+        adapter = self._makeOne(context)
+
+        self.assertEqual(adapter.get('phred@example.com'), None)
+
+        self.failIf('cartouche' in context.__dict__)
+
+    def test_get_context_is_root_w_cartouche_miss(self):
+        context = self._makeContext()
+        cartouche = context.cartouche = self._makeCartouche()
+        adapter = self._makeOne(context)
+
+        self.assertEqual(adapter.get('phred@example.com'), None)
+
+        self.failIf('phred@example.com' in cartouche.by_email)
+
+    def test_get_context_is_root_w_cartouche_hit(self):
+        context = self._makeContext()
+        cartouche = context.cartouche = self._makeCartouche()
+        info = self._makeInfo()
+        cartouche.by_email['phred@example.com'] = info
+
+        adapter = self._makeOne(context)
+
+        self.failUnless(adapter.get('phred@example.com') is info)
+
+    def test_remove_context_is_root_no_cartouche(self):
+        context = self._makeContext()
+        adapter = self._makeOne(context)
+
+        self.assertRaises(KeyError, adapter.remove, 'phred@example.com')
+
+    def test_remove_context_is_root_w_cartouche_miss(self):
+        context = self._makeContext()
+        cartouche = context.cartouche = self._makeCartouche()
+        adapter = self._makeOne(context)
+
+        self.assertRaises(KeyError, adapter.remove, 'phred@example.com')
+
+    def test_remove_context_is_root_w_cartouche_hit(self):
+        context = self._makeContext()
+        cartouche = context.cartouche = self._makeCartouche()
+        cartouche.by_email['phred@example.com'] = object()
+        adapter = self._makeOne(context)
+
+        adapter.remove('phred@example.com')
+
+        self.failIf('phred@example.com' in cartouche.by_email)
+
+
+class ByLoginRegistrationsTests(_RegistrationsBase, unittest.TestCase):
+
+    def _getTargetClass(self):
+        from cartouche.registration import ByLoginRegistrations
+        return ByLoginRegistrations
+
+    def _verifyInfo(self, info, email='phred@example.com',
+                    login='login', password='password',
+                    question='question', answer='answer'):
+        from cartouche.interfaces import IRegistrationInfo
+        self.failUnless(IRegistrationInfo.providedBy(info))
+        self.assertEqual(info.email, email)
+        self.assertEqual(info.login, login)
+        self.assertEqual(info.password, password)
+        self.assertEqual(info.security_question, question)
+        self.assertEqual(info.security_answer, answer)
+
+    def test_set_context_is_root_no_cartouche(self):
+        context = self._makeContext()
+        adapter = self._makeOne(context)
+
+        adapter.set('login', email='phred@example.com', password='password',
+                    security_question='question', security_answer='answer')
+
+        self._verifyInfo(context.cartouche.by_login['login'])
+
+    def test_set_context_is_root_w_cartouche(self):
+        context = self._makeContext()
+        cartouche = context.cartouche = self._makeCartouche()
+        adapter = self._makeOne(context)
+
+        adapter.set('login', email='phred@example.com', password='password',
+                    security_question='question', security_answer='answer')
+
+        self._verifyInfo(cartouche.by_login['login'])
+
+    def test_set_context_is_not_root(self):
+        root = self._makeContext()
+        cartouche = root.cartouche = self._makeCartouche()
+        parent = root['parent'] = self._makeContext()
+        context = parent['context'] = self._makeContext()
+        adapter = self._makeOne(context)
+
+        adapter.set('login', email='phred@example.com', password='password',
+                    security_question='question', security_answer='answer')
+
+        self._verifyInfo(cartouche.by_login['login'])
+
+    def test_set_record_context_is_root_no_cartouche(self):
+        context = self._makeContext()
+        adapter = self._makeOne(context)
+
+        record = object()
+        adapter.set_record('login', record)
+
+        self.failUnless(context.cartouche.by_login['login'] is record)
+
+    def test_set_record_context_is_root_w_cartouche(self):
+        context = self._makeContext()
+        cartouche = context.cartouche = self._makeCartouche()
+        adapter = self._makeOne(context)
+
+        record = object()
+        adapter.set_record('login', record)
+
+        self.failUnless(cartouche.by_login['login'] is record)
+
+    def test_set_record_context_is_not_root(self):
+        root = self._makeContext()
+        cartouche = root.cartouche = self._makeCartouche()
+        parent = root['parent'] = self._makeContext()
+        context = parent['context'] = self._makeContext()
+        adapter = self._makeOne(context)
+
+        record = object()
+        adapter.set_record('login', record)
+
+        self.failUnless(cartouche.by_login['login'] is record)
+
+    def test_get_context_is_root_no_cartouche(self):
+        context = self._makeContext()
+        adapter = self._makeOne(context)
+
+        self.assertEqual(adapter.get('login'), None)
+
+        self.failIf('cartouche' in context.__dict__)
+
+    def test_get_context_is_root_w_cartouche_miss(self):
+        context = self._makeContext()
+        cartouche = context.cartouche = self._makeCartouche()
+        adapter = self._makeOne(context)
+
+        self.assertEqual(adapter.get('login'), None)
+
+        self.failIf('login' in cartouche.by_login)
+
+    def test_get_context_is_root_w_cartouche_hit(self):
+        context = self._makeContext()
+        cartouche = context.cartouche = self._makeCartouche()
+        info = self._makeInfo()
+        cartouche.by_login['login'] = info
+
+        adapter = self._makeOne(context)
+
+        self.failUnless(adapter.get('login') is info)
+
+    def test_remove_context_is_root_no_cartouche(self):
+        context = self._makeContext()
+        adapter = self._makeOne(context)
+
+        self.assertRaises(KeyError, adapter.remove, 'login')
+
+    def test_remove_context_is_root_w_cartouche_miss(self):
+        context = self._makeContext()
+        cartouche = context.cartouche = self._makeCartouche()
+        adapter = self._makeOne(context)
+
+        self.assertRaises(KeyError, adapter.remove, 'login')
+
+    def test_remove_context_is_root_w_cartouche_hit(self):
+        context = self._makeContext()
+        cartouche = context.cartouche = self._makeCartouche()
+        cartouche.by_login['login'] = object()
+        adapter = self._makeOne(context)
+
+        adapter.remove('login')
+
+        self.failIf('login' in cartouche.by_login)
 
 
 class Test_getRandomToken(_Base, unittest.TestCase):
@@ -212,7 +573,7 @@ class Test_register_view(_Base, unittest.TestCase):
                }
         mtr = self.config.testing_add_template('templates/main.pt')
         context = self._makeContext()
-        request = self._makeRequest(POST=POST, view_name='register.html')
+        request = self._makeRequest(POST=POST)
 
         info = self._callFUT(context, request)
 
@@ -240,7 +601,7 @@ class Test_register_view(_Base, unittest.TestCase):
                                              ITokenGenerator)
         pending = self._registerPendingRegistrations()
         context = self._makeContext()
-        request = self._makeRequest(POST=POST, view_name='register.html')
+        request = self._makeRequest(POST=POST)
 
         response = self._callFUT(context, request)
 
@@ -295,11 +656,11 @@ class Test_confirm_registration_view(_Base, unittest.TestCase):
         INPUT = re.compile('<input.*name="(?P<name>\w+)" '
                            'value="(?P<value>[^"]*)"', re.MULTILINE)
         EMAIL = 'phred@example.com'
-        context = self._makeContext()
+        mtr = self.config.testing_add_template('templates/main.pt')
         pending = self._registerPendingRegistrations()
         pending[EMAIL] = self._makeInfo()
+        context = self._makeContext()
         request = self._makeRequest(GET={'email': EMAIL})
-        mtr = self.config.testing_add_template('templates/main.pt')
 
         info = self._callFUT(context, request)
 
@@ -318,9 +679,9 @@ class Test_confirm_registration_view(_Base, unittest.TestCase):
                 'confirm': '',
                }
         pending = self._registerPendingRegistrations()
-        context = self._makeContext()
-        request = self._makeRequest(POST=POST, view_name='register.html')
         mtr = self.config.testing_add_template('templates/main.pt')
+        context = self._makeContext()
+        request = self._makeRequest(POST=POST)
 
         info = self._callFUT(context, request)
 
@@ -338,7 +699,7 @@ class Test_confirm_registration_view(_Base, unittest.TestCase):
                }
         pending = self._registerPendingRegistrations()
         context = self._makeContext()
-        request = self._makeRequest(POST=POST, view_name='register.html')
+        request = self._makeRequest(POST=POST)
 
         response = self._callFUT(request=request)
 
@@ -354,18 +715,80 @@ class Test_confirm_registration_view(_Base, unittest.TestCase):
                 'token': 'TOKEN',
                 'confirm': '',
                }
-        context = self._makeContext()
         pending = self._registerPendingRegistrations()
         pending[EMAIL] = Dummy(token='OTHER')
-        request = self._makeRequest(POST=POST, view_name='register.html')
+        context = self._makeContext()
+        request = self._makeRequest(POST=POST)
 
-        response = self._callFUT(context=context, request=request)
+        response = self._callFUT(context, request)
 
         self.failUnless(isinstance(response, HTTPFound))
         self.assertEqual(response.location,
                          'http://example.com/confirm_registration.html'
                          '?message=Please+copy+the+token+from+your'
                          '+confirmation+e-mail.')
+
+    def test_POST_w_token_hit(self):
+        from webob.exc import HTTPFound
+        EMAIL = 'phred@example.com'
+        POST = {'email': EMAIL,
+                'token': 'TOKEN',
+                'confirm': '',
+               }
+        pending = self._registerPendingRegistrations()
+        pending[EMAIL] = Dummy(token='TOKEN')
+        by_login = self._registerByLogin()
+        by_email = self._registerByEmail()
+        context = self._makeContext()
+        request = self._makeRequest(POST=POST)
+
+        response = self._callFUT(context, request)
+
+        self.failUnless(isinstance(response, HTTPFound))
+        self.assertEqual(response.location,
+                         'http://example.com/welcome.html')
+
+        self.failIf(EMAIL in pending)
+        self.failUnless(EMAIL in by_login)
+        self.failUnless(EMAIL in by_email)
+        self.failUnless(by_login[EMAIL] is by_email[EMAIL])
+        self.assertEqual(by_login[EMAIL].password, None)
+        self.assertEqual(by_login[EMAIL].security_question, None)
+        self.assertEqual(by_login[EMAIL].security_answer, None)
+
+
+class Test_welcome_view(_Base, unittest.TestCase):
+
+    def _callFUT(self, context=None, request=None):
+        from cartouche.registration import welcome_view
+        if context is None:
+            context = self._makeContext()
+        if request is None:
+            request = self._makeRequest()
+        return welcome_view(context, request)
+
+    def test_GET_wo_credentials(self):
+        from webob.exc import HTTPFound
+        response = self._callFUT()
+
+        self.failUnless(isinstance(response, HTTPFound))
+        self.assertEqual(response.location,
+                         'http://example.com/register.html?message='
+                         'Please+register+first.')
+
+    def test_GET_w_credentials(self):
+        EMAIL = 'phred@example.com'
+        ENVIRON = {'repoze.who.identity': {'repoze.who.userid': EMAIL}}
+        by_login = self._registerByLogin()
+        by_login[EMAIL] = Dummy(login=EMAIL, email=EMAIL, password=None,
+                                security_question=None, security_answer=None)
+        mtr = self.config.testing_add_template('templates/main.pt')
+        request = self._makeRequest(environ=ENVIRON)
+
+        info = self._callFUT(request=request)
+
+        self.failUnless(info['main_template'] is mtr.implementation())
+        self.assertEqual(info['authenticated_user'], EMAIL)
 
 
 class Dummy:

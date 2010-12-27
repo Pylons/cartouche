@@ -21,24 +21,48 @@ class Dummy(object):
     def __init__(self, **kw):
         self.__dict__.update(kw)
 
+def _factory(_make_info):
+    class FauxRegistrations(object):
+        implements(IRegistrations)
+        _store = {} # yes, a mutable default
 
-class FauxPendingRegistrations(object):
-    implements(IRegistrations)
-    _pending_store = {} # yes, a mutable default
+        def __init__(self, context):
+            pass
 
-    def __init__(self, context):
-        pass
+        def set(self, key, **kw):
+            print DIVIDER
+            print 'Setting registration for key: %s' % key
+            print DIVIDER
+            info = _make_info(key, kw)
+            self._store[key] = info
+
+        def set_record(self, key, record):
+            print DIVIDER
+            print 'Adding copied registration for key: %s' % key
+            print DIVIDER
+            self._store[key] = record
+
+        def get(self, key, default=None):
+            return self._store.get(key, default)
+
+        def remove(self, key, default=None):
+            print DIVIDER
+            print 'Removing registration for key: %s' % key
+            print DIVIDER
+            del self._store[key]
+    return FauxRegistrations
 
 
-    def set(self, email, security_question, security_answer, token):
-        print DIVIDER
-        print 'Setting pending registration for email: %s' % email
-        print DIVIDER
-        info = Dummy(email=email,
-                     security_question=security_question,
-                     security_answer=security_answer,
-                     token=token)
-        self._pending_store[email] = info
+def _make_pending(key, kw):
+    token = kw['token']
+    return Dummy(email=key, token=token)
 
-    def get(self, email, default=None):
-        return self._pending_store.get(email, default)
+
+def _make_confirmed(key, kw):
+    return Dummy(email=key, login=key,
+                 password=None, security_question=None, security_answer=None)
+
+
+FauxPendingRegistrations = _factory(_make_pending)
+FauxByEmailRegistrations = _factory(_make_confirmed)
+FauxByLoginRegistrations = _factory(_make_confirmed)
