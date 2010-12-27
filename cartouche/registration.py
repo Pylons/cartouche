@@ -29,9 +29,11 @@ from pyramid.url import model_url
 from repoze.sendmail.interfaces import IMailDelivery
 from repoze.sendmail.delivery import DirectMailDelivery
 from repoze.sendmail.mailer import SMTPMailer
+from repoze.who.api import get_api
 from webob.exc import HTTPFound
 from zope.interface import implements
 
+from cartouche.interfaces import IAutoLogin
 from cartouche.interfaces import IRegistrations
 from cartouche.interfaces import ITokenGenerator
 
@@ -168,6 +170,14 @@ def getRandomToken(request):
     return str(uuid4())
 
 
+def autoLoginViaAuthTkt(userid, request):
+    api = get_api(request.environ)
+    if api is None:
+        raise ValueError("Couldn't find / create repoze.who API object")
+    credentials = {'repoze.who.plugins.auth_tkt.userid': userid}
+    identity, headers = api.login(credentials, 'auth_tkt')
+    return headers
+
 # By default, deliver e-mail via localhost, port 25.
 _delivery = DirectMailDelivery(SMTPMailer())
 
@@ -272,11 +282,15 @@ def confirm_registration_view(context, request):
             info = by_email.get(email)
             by_login.set_record(email, info)
             # TODO:  use who API to remember identity.
+            auto_login = (request.registry.queryUtility(IAutoLogin)
+                            or autoLoginViaAuthTkt)
+            headers = auto_login(email, request)
+
             welcome_url = request.registry.settings.get('welcome_url')
             if welcome_url is None:
                 welcome_url = model_url(context, request,
                                         'welcome.html')
-            return HTTPFound(location=welcome_url)
+            return HTTPFound(location=welcome_url, headers=headers)
     else:
         email = request.GET.get('email')
         if email is None:

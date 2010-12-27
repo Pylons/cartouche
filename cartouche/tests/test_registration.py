@@ -532,6 +532,29 @@ class Test_getRandomToken(_Base, unittest.TestCase):
         self.assertEqual(token, 'RANDOM')
 
 
+class Test_autoLoginViaAuthTkt(_Base, unittest.TestCase):
+
+    def _callFUT(self, userid='testing', request=None):
+        from cartouche.registration import autoLoginViaAuthTkt
+        if request is None:
+            request = self._makeRequest()
+        return autoLoginViaAuthTkt(userid, request)
+
+    def test_no_API_in_environ(self):
+        self.assertRaises(ValueError, self._callFUT)
+
+    def test_w_API_in_environ(self):
+        HEADERS = [('Faux-Cookie', 'gingersnap')]
+        api = FauxAPI(HEADERS)
+        request = self._makeRequest(environ={'repoze.who.api': api})
+
+        result = self._callFUT('testing', request)
+
+        self.assertEqual(result, HEADERS)
+        self.assertEqual(api._called_with[0],
+                         {'repoze.who.plugins.auth_tkt.userid': 'testing'})
+        self.assertEqual(api._called_with[1], 'auth_tkt')
+
 class Test_register_view(_Base, unittest.TestCase):
 
     def _callFUT(self, context=None, request=None):
@@ -739,12 +762,17 @@ class Test_confirm_registration_view(_Base, unittest.TestCase):
         pending[EMAIL] = Dummy(token='TOKEN')
         by_login = self._registerByLogin()
         by_email = self._registerByEmail()
+        HEADERS = [('Faux-Cookie', 'gingersnap')]
+        api = FauxAPI(HEADERS)
         context = self._makeContext()
-        request = self._makeRequest(POST=POST)
+        request = self._makeRequest(POST=POST,
+                                    environ={'repoze.who.api': api})
 
         response = self._callFUT(context, request)
 
         self.failUnless(isinstance(response, HTTPFound))
+        for key, value in HEADERS:
+            self.assertEqual(response.headers[key], value)
         self.assertEqual(response.location,
                          'http://example.com/welcome.html')
 
@@ -794,6 +822,14 @@ class Test_welcome_view(_Base, unittest.TestCase):
 class Dummy:
     def __init__(self, **kw):
         self.__dict__.update(kw)
+
+
+class FauxAPI(Dummy):
+    def __init__(self, headers):
+        self._headers = headers
+    def login(self, credentials, identifier_name=None):
+        self._called_with = (credentials, identifier_name)
+        return 'testing', self._headers
 
 
 class DummyMailer:

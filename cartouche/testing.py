@@ -66,3 +66,15 @@ def _make_confirmed(key, kw):
 FauxPendingRegistrations = _factory(_make_pending)
 FauxByEmailRegistrations = _factory(_make_confirmed)
 FauxByLoginRegistrations = _factory(_make_confirmed)
+
+
+class FauxAuthentication(object):
+    def authenticate(self, environ, identity):
+        try:
+            login = identity['login']
+            password = identity['password']
+        except KeyError:
+            return None
+        record = FauxByLoginRegistrations.get(login)
+        if record.password == password:
+            return login

@@ -32,6 +32,12 @@ class ITokenGenerator(Interface):
         """ Return a unique, quasi-random token as a string.
         """
 
+class IAutoLogin(Interface):
+    """ Utility interface to allow loggin users in automatically.
+    """
+    def __call__(userid, request):
+        """ Return auto-login response headers for newly-confirmed user.
+        """
 
 class IPendingRegistrationInfo(Interface):
     email = Attribute(u'Registered e-mail address')

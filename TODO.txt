@@ -19,19 +19,19 @@ Registration
         
       * Include a link to the confirm page in the mail.
 
-- [_] When token confirmed, add e-mail-confirmed user to ``ZODB`` user store.
+- [X] When token confirmed, add e-mail-confirmed user to ``ZODB`` user store.
 
-      o Auto-login the user using the ``repoze.who`` API.
+      * Auto-login the user using the ``repoze.who`` API.
 
-      o Redirect to the configured welcome page.
+      * Redirect to the configured welcome page.
 
-- [_] Default welcome page shows logged-in user links to set up profile:
+- [X] Default welcome page shows logged-in user links to set up profile:
 
-      o Shows user that she is logged in, with ``email`` as login ID.
+      * Shows user that she is logged in, with ``email`` as login ID.
 
-      o Link to the update-my-login-password-and-security-question page.
+      * Link to the update-my-login-password-and-security-question page.
 
-      o Link to the edit-my-profile page.
+      * Link to the edit-my-profile page.
 
 
 Update Account Login
