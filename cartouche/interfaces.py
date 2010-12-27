@@ -21,6 +21,8 @@ class IRoot(Interface):
 
 class ICartouche(Interface):
     pending = Attribute(u'Pending registrations, keyed by email')
+    by_email = Attribute(u'Registered users, keyed by email')
+    by_login = Attribute(u'Registered users, keyed by login name')
 
 
 class ITokenGenerator(Interface):

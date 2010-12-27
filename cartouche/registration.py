@@ -148,7 +148,7 @@ def register_view(context, request):
         else:
             pending = request.registry.queryAdapter(context, IRegistrations,
                                                     name='pending')
-            if pending is None:
+            if pending is None:  #pragma NO COVERAGE
                 pending = PendingRegistrations(context)
             email = appstruct['email']
             token = getRandomToken(request)
@@ -183,7 +183,7 @@ def confirm_registration_view(context, request):
     form = Form(Confirm(), buttons=('confirm',))
     pending = request.registry.queryAdapter(context, IRegistrations,
                                             name='pending')
-    if pending is None:
+    if pending is None:  #pragma NO COVERAGE
         pending = PendingRegistrations(context)
     if 'confirm' in request.POST:
         try:

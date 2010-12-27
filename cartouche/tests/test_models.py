@@ -82,3 +82,30 @@ class PendingRegistrationInfoTests(unittest.TestCase):
         from zope.interface.verify import verifyObject
         from cartouche.interfaces import IPendingRegistrationInfo
         verifyObject(IPendingRegistrationInfo, self._makeOne())
+
+
+class RegistrationInfoTests(unittest.TestCase):
+
+    def _getTargetClass(self):
+        from cartouche.models import RegistrationInfo
+        return RegistrationInfo
+
+    def _makeOne(self,
+                 email='phred@example.com',
+                 login='login',
+                 password='password',
+                 security_question='question',
+                 security_answer='answer',
+                ):
+        return self._getTargetClass()(email, login, password,   
+                                      security_question, security_answer)
+
+    def test_class_conforms_to_IRegistrationInfo(self):
+        from zope.interface.verify import verifyClass
+        from cartouche.interfaces import IRegistrationInfo
+        verifyClass(IRegistrationInfo, self._getTargetClass())
+
+    def test_instance_conforms_to_IRegistrationInfo(self):
+        from zope.interface.verify import verifyObject
+        from cartouche.interfaces import IRegistrationInfo
+        verifyObject(IRegistrationInfo, self._makeOne())

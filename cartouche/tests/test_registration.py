@@ -42,13 +42,6 @@ class _Base(object):
                                      security_answer=answer,
                                      token=token)
 
-    def _makeCartouche(self):
-        class DummyCartouche(object):
-            def __init__(self):
-                self.pending = {}
-                self.registered = {}
-        return DummyCartouche()
-
     def _registerPendingRegistrations(self):
         from cartouche.interfaces import IRegistrations
         pending = {}
@@ -82,6 +75,13 @@ class PendingRegistrationsTests(_Base, unittest.TestCase):
         if context is None:
             context = self._makeContext()
         return self._getTargetClass()(context)
+
+    def _makeCartouche(self):
+        class DummyCartouche(object):
+            def __init__(self):
+                self.pending = {}
+                self.registered = {}
+        return DummyCartouche()
 
     def test_class_conforms_to_IRegistrations(self):
         from zope.interface.verify import verifyClass
@@ -212,7 +212,6 @@ class Test_register_view(_Base, unittest.TestCase):
                }
         mtr = self.config.testing_add_template('templates/main.pt')
         context = self._makeContext()
-        cartouche = context.cartouche = self._makeCartouche()
         request = self._makeRequest(POST=POST, view_name='register.html')
 
         info = self._callFUT(context, request)
@@ -268,6 +267,7 @@ class Test_confirm_registration_view(_Base, unittest.TestCase):
 
     def test_GET_wo_email(self):
         from webob.exc import HTTPFound
+        pending = self._registerPendingRegistrations()
 
         response = self._callFUT()
 
@@ -280,6 +280,7 @@ class Test_confirm_registration_view(_Base, unittest.TestCase):
     def test_GET_w_email_miss(self):
         from webob.exc import HTTPFound
         EMAIL = 'phred@example.com'
+        pending = self._registerPendingRegistrations()
         request = self._makeRequest(GET={'email': EMAIL})
 
         response = self._callFUT(request=request)
@@ -316,8 +317,8 @@ class Test_confirm_registration_view(_Base, unittest.TestCase):
                 'token': '',
                 'confirm': '',
                }
+        pending = self._registerPendingRegistrations()
         context = self._makeContext()
-        cartouche = context.cartouche = self._makeCartouche()
         request = self._makeRequest(POST=POST, view_name='register.html')
         mtr = self.config.testing_add_template('templates/main.pt')
 
@@ -335,8 +336,8 @@ class Test_confirm_registration_view(_Base, unittest.TestCase):
                 'token': 'TOKEN',
                 'confirm': '',
                }
+        pending = self._registerPendingRegistrations()
         context = self._makeContext()
-        cartouche = context.cartouche = self._makeCartouche()
         request = self._makeRequest(POST=POST, view_name='register.html')
 
         response = self._callFUT(request=request)

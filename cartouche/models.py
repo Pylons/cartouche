@@ -20,6 +20,7 @@ from zope.interface import implements
 from cartouche.interfaces import IRoot
 from cartouche.interfaces import ICartouche
 from cartouche.interfaces import IPendingRegistrationInfo
+from cartouche.interfaces import IRegistrationInfo
 
 
 class Root(PersistentMapping):
@@ -34,6 +35,8 @@ class Cartouche(Persistent):
 
     def __init__(self):
         self.pending = OOBTree()
+        self.by_email = OOBTree()
+        self.by_login = OOBTree()
 
 
 class PendingRegistrationInfo(Persistent):
@@ -42,3 +45,15 @@ class PendingRegistrationInfo(Persistent):
     def __init__(self, email, token):
         self.email = email
         self.token = token
+
+
+class RegistrationInfo(Persistent):
+    implements(IRegistrationInfo)
+
+    def __init__(self, email, login, password,
+                 security_question, security_answer):
+        self.email = email
+        self.login = login
+        self.password = password
+        self.security_question = security_question
+        self.security_answer = security_answer
