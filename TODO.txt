@@ -5,12 +5,12 @@
 Registration
 ------------
 
-- [_] Define "minimal" registration schema using ``deform``.
+- [/] Define "minimal" registration schema using ``deform``.
 
-      o ``email`` plus "security question" pair are initially-required fields.
+      * ``email`` is only initially-required fields.
 
-      o Seve entered data, along with a quasi-random token and an expiration
-        date, in a persistent mapping keyed by e-mail address.
+      o Seve entered data, along with a quasi-random token in a persistent
+        mapping keyed by e-mail address.
 
       o Redirect to URL with 'email' in query string.
 
