@@ -14,6 +14,36 @@
 import unittest
 
 
+class RootTests(unittest.TestCase):
+
+    def _getTargetClass(self):
+        from cartouche.models import Root
+        return Root
+
+    def _makeOne(self):
+        return self._getTargetClass()()
+
+    def test_class_conforms_to_IRoot(self):
+        from zope.interface.verify import verifyClass
+        from cartouche.interfaces import IRoot
+        verifyClass(IRoot, self._getTargetClass())
+
+    def test_instance_conforms_to_IRoot(self):
+        from zope.interface.verify import verifyObject
+        from cartouche.interfaces import IRoot
+        verifyObject(IRoot, self._makeOne())
+
+    def test___repr___empty(self):
+        root = self._makeOne()
+        self.assertEqual(repr(root), '<Root object;  keys: >')
+
+    def test___repr___non_empty(self):
+        root = self._makeOne()
+        root['a'] = object()
+        root['b'] = object()
+        self.assertEqual(repr(root), '<Root object;  keys: a, b>')
+
+
 class CartoucheTests(unittest.TestCase):
 
     def _getTargetClass(self):
