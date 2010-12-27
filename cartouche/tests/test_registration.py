@@ -49,6 +49,21 @@ class _Base(object):
                 self.registered = {}
         return DummyCartouche()
 
+    def _registerPendingRegistrations(self):
+        from cartouche.interfaces import IRegistrations
+        pending = {}
+        class DummyPendingRegistrations:
+            def __init__(self, context):
+                pass
+            def get(self, key, default=None):
+                return pending.get(key, default)
+            def set(self, key, **kw):
+                pending[key] = Dummy(email=key, **kw)
+        self.config.registry.registerAdapter(DummyPendingRegistrations,
+                                             (None,), IRegistrations,
+                                             name='pending')
+        return pending
+
     def _verifyInfo(self, info, email='phred@example.com',
                   question='question', answer='answer', token='token'):
         from cartouche.interfaces import IPendingRegistrationInfo
@@ -224,8 +239,8 @@ class Test_register_view(_Base, unittest.TestCase):
         self.config.registry.registerUtility(delivery, IMailDelivery)
         self.config.registry.registerUtility(DummyTokenGenerator(),
                                              ITokenGenerator)
+        pending = self._registerPendingRegistrations()
         context = self._makeContext()
-        cartouche = context.cartouche = self._makeCartouche()
         request = self._makeRequest(POST=POST, view_name='register.html')
 
         response = self._callFUT(context, request)
@@ -236,7 +251,7 @@ class Test_register_view(_Base, unittest.TestCase):
                            '?email=%s' % quote(TO_EMAIL))
         self.assertEqual(delivery._sent[0], FROM_EMAIL)
         self.assertEqual(list(delivery._sent[1]), [TO_EMAIL])
-        info = cartouche.pending[TO_EMAIL]
+        info = pending[TO_EMAIL]
         self.assertEqual(info.email, TO_EMAIL)
         self.assertEqual(info.token, 'RANDOM')
 
@@ -280,8 +295,8 @@ class Test_confirm_registration_view(_Base, unittest.TestCase):
                            'value="(?P<value>[^"]*)"', re.MULTILINE)
         EMAIL = 'phred@example.com'
         context = self._makeContext()
-        cartouche = context.cartouche = self._makeCartouche()
-        cartouche.pending[EMAIL] = self._makeInfo()
+        pending = self._registerPendingRegistrations()
+        pending[EMAIL] = self._makeInfo()
         request = self._makeRequest(GET={'email': EMAIL})
         mtr = self.config.testing_add_template('templates/main.pt')
 
@@ -339,8 +354,8 @@ class Test_confirm_registration_view(_Base, unittest.TestCase):
                 'confirm': '',
                }
         context = self._makeContext()
-        cartouche = context.cartouche = self._makeCartouche()
-        cartouche.pending[EMAIL] = Dummy(token='OTHER')
+        pending = self._registerPendingRegistrations()
+        pending[EMAIL] = Dummy(token='OTHER')
         request = self._makeRequest(POST=POST, view_name='register.html')
 
         response = self._callFUT(context=context, request=request)
