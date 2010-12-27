@@ -173,7 +173,6 @@ class Test_register_view(_Base, unittest.TestCase):
 
         main_template = info['main_template']
         self.failUnless(main_template is mtr.implementation())
-        self.failUnless(info.get('appstruct') is None)
         rendered_form = info['rendered_form']
         inputs = [x for x in INPUT.findall(rendered_form)
                         if not x.startswith('_')]
@@ -188,7 +187,27 @@ class Test_register_view(_Base, unittest.TestCase):
 
         self.assertEqual(info['message'], 'Foo')
 
-    def test_POST(self):
+    def test_POST_w_errors(self):
+        import re
+        SUMMARY_ERROR = re.compile('<h3[^>]*>There was a problem', re.MULTILINE)
+        FIELD_ERROR = re.compile('<p class="error"', re.MULTILINE)
+        POST = {'email': '',
+                'register': '',
+               }
+        mtr = self.config.testing_add_template('templates/main.pt')
+        context = self._makeContext()
+        cartouche = context.cartouche = self._makeCartouche()
+        request = self._makeRequest(POST=POST, view_name='register.html')
+
+        info = self._callFUT(context, request)
+
+        main_template = info['main_template']
+        self.failUnless(main_template is mtr.implementation())
+        rendered_form = info['rendered_form']
+        self.failUnless(SUMMARY_ERROR.search(rendered_form))
+        self.failUnless(FIELD_ERROR.search(rendered_form))
+
+    def test_POST_no_errors(self):
         from urllib import quote
         from repoze.sendmail.interfaces import IMailDelivery
         from webob.exc import HTTPFound
@@ -197,9 +216,6 @@ class Test_register_view(_Base, unittest.TestCase):
         FROM_EMAIL = 'admin@example.com'
         TO_EMAIL = 'phred@example.com'
         POST = {'email': TO_EMAIL,
-                'security': {'question': 'petname',
-                             'answer': 'Fido',
-                            },
                 'register': '',
                }
         self.config.registry.settings['from_addr'] = FROM_EMAIL
