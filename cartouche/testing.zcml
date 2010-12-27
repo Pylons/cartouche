@@ -6,7 +6,8 @@
  <utility provides="repoze.sendmail.interfaces.IMailDelivery"
           factory=".testing.FauxMailDelivery" />
 
- <adapter provides="cartouche.interfaces.IPendingRegistrations"
+ <adapter provides="cartouche.interfaces.IRegistrations"
+          name="pending"
           for="*"
           factory=".testing.FauxPendingRegistrations" />
 

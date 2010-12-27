@@ -64,21 +64,21 @@ class CartoucheTests(unittest.TestCase):
         verifyObject(ICartouche, self._makeOne())
 
 
-class RegistrationInfoTests(unittest.TestCase):
+class PendingRegistrationInfoTests(unittest.TestCase):
 
     def _getTargetClass(self):
-        from cartouche.models import RegistrationInfo
-        return RegistrationInfo
+        from cartouche.models import PendingRegistrationInfo
+        return PendingRegistrationInfo
 
     def _makeOne(self, email='phred@example.com', token='token'):
         return self._getTargetClass()(email, token)
 
-    def test_class_conforms_to_IRegistrationInfo(self):
+    def test_class_conforms_to_IPendingRegistrationInfo(self):
         from zope.interface.verify import verifyClass
-        from cartouche.interfaces import IRegistrationInfo
-        verifyClass(IRegistrationInfo, self._getTargetClass())
+        from cartouche.interfaces import IPendingRegistrationInfo
+        verifyClass(IPendingRegistrationInfo, self._getTargetClass())
 
-    def test_instance_conforms_to_IRegistrationInfo(self):
+    def test_instance_conforms_to_IPendingRegistrationInfo(self):
         from zope.interface.verify import verifyObject
-        from cartouche.interfaces import IRegistrationInfo
-        verifyObject(IRegistrationInfo, self._makeOne())
+        from cartouche.interfaces import IPendingRegistrationInfo
+        verifyObject(IPendingRegistrationInfo, self._makeOne())

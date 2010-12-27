@@ -24,7 +24,6 @@ from deform import Form
 from deform import ValidationFailure
 from deform.template import default_dir as deform_templates_dir
 from deform.widget import SelectWidget
-from deform.widget import TextInputWidget
 from pyramid.renderers import get_renderer
 from pyramid.url import model_url
 from repoze.sendmail.interfaces import IMailDelivery
@@ -33,7 +32,7 @@ from repoze.sendmail.mailer import SMTPMailer
 from webob.exc import HTTPFound
 from zope.interface import implements
 
-from cartouche.interfaces import IPendingRegistrations
+from cartouche.interfaces import IRegistrations
 from cartouche.interfaces import ITokenGenerator
 
 
@@ -43,19 +42,20 @@ class PendingRegistrations(object):
     Stores registration info in a BTree named 'pending', an attribute of the
     root object's 'cartouche' attribute.
     """
-    implements(IPendingRegistrations)
+    implements(IRegistrations)
 
     def __init__(self, context):
         self.context = context
 
-    def set(self, email, token):
-        """ See IPendingRegistrations.
+    def set(self, email, **kw):
+        """ See IRegistrations.
         """
+        token = kw['token']
         info = self._makeInfo(email, token)
         self._getCartouche(True).pending[email] = info
 
     def get(self, email, default=None):
-        """ See IPendingRegistrations.
+        """ See IRegistrations.
         """
         cartouche = self._getCartouche()
         if cartouche is None:
@@ -74,8 +74,8 @@ class PendingRegistrations(object):
 
     def _makeInfo(self, email, token):
         # Import here to allow reuse of views without stock models.
-        from cartouche.models import RegistrationInfo as RI
-        return RI(email, token)
+        from cartouche.models import PendingRegistrationInfo as PRI
+        return PRI(email, token)
 
 
 templates_dir = resource_filename('cartouche', 'templates/')
@@ -98,14 +98,9 @@ class Signup(Schema):
     email = SchemaNode(String(), validator=Email())
 
 
-class ReadonlyTextWidget(TextInputWidget):
-    template = readonly_template = 'readonly_text_input'
-
-
 class Confirm(Schema):
     email = SchemaNode(String(),
                        validator=Email(),
-                       widget=ReadonlyTextWidget(),
                       )
     token = SchemaNode(String(),
                        description="Enter the token from the registration "
@@ -151,13 +146,13 @@ def register_view(context, request):
         except ValidationFailure, e:
             rendered_form = e.render()
         else:
-            pending = request.registry.queryAdapter(context,
-                                                    IPendingRegistrations)
+            pending = request.registry.queryAdapter(context, IRegistrations,
+                                                    name='pending')
             if pending is None:
                 pending = PendingRegistrations(context)
             email = appstruct['email']
             token = getRandomToken(request)
-            pending.set(email, token)
+            pending.set(email, token=token)
 
             from_addr = request.registry.settings['from_addr']
             delivery = request.registry.queryUtility(IMailDelivery) or _delivery
@@ -182,11 +177,12 @@ def register_view(context, request):
 REGISTER_FIRST = 'Please register first.'
 REGISTER_OR_VISIT = ('Please register first '
                      'or visit the link in your confirmation e-mail.')
+CHECK_TOKEN = ('Please copy the token from your confirmation e-mail.')
 
 def confirm_registration_view(context, request):
     form = Form(Confirm(), buttons=('confirm',))
-    pending = request.registry.queryAdapter(context,
-                                            IPendingRegistrations)
+    pending = request.registry.queryAdapter(context, IRegistrations,
+                                            name='pending')
     if pending is None:
         pending = PendingRegistrations(context)
     if 'confirm' in request.POST:
@@ -198,16 +194,23 @@ def confirm_registration_view(context, request):
             email = appstruct['email']
             token = appstruct['token']
             info = pending.get(email)
-            if info and token == pending.get(email).token:
-                # TODO:  transfer pending info to permanent store
-                # TODO:  use who API to remember identity.
-                welcome_url = request.registry.settings.get('welcome_url')
-                if welcome_url is None:
-                    welcome_url = model_url(context, request, 'welcome.html')
-                return HTTPFound(location=welcome_url)
-            else:
-                # XXX do what?
-                rendered_form = '<h1>TOKEN MISMATCH</h1>'
+            if info is None:
+                return HTTPFound(location=model_url(context, request,
+                                                    'register.html',
+                                                    query={'message':
+                                                            REGISTER_FIRST}))
+            if token != info.token:
+                return HTTPFound(location=model_url(context, request,
+                                                'confirm_registration.html',
+                                                query={'message':
+                                                        CHECK_TOKEN}))
+            # TODO:  transfer pending info to permanent store
+            # TODO:  use who API to remember identity.
+            welcome_url = request.registry.settings.get('welcome_url')
+            if welcome_url is None:
+                welcome_url = model_url(context, request,
+                                        'welcome.html')
+            return HTTPFound(location=welcome_url)
     else:
         email = request.GET.get('email')
         if email is None:

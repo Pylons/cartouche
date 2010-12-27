@@ -46,12 +46,13 @@ class _Base(object):
         class DummyCartouche(object):
             def __init__(self):
                 self.pending = {}
+                self.registered = {}
         return DummyCartouche()
 
     def _verifyInfo(self, info, email='phred@example.com',
                   question='question', answer='answer', token='token'):
-        from cartouche.interfaces import IRegistrationInfo
-        self.failUnless(IRegistrationInfo.providedBy(info))
+        from cartouche.interfaces import IPendingRegistrationInfo
+        self.failUnless(IPendingRegistrationInfo.providedBy(info))
         self.assertEqual(info.email, email)
         self.assertEqual(info.token, token)
 
@@ -67,21 +68,21 @@ class PendingRegistrationsTests(_Base, unittest.TestCase):
             context = self._makeContext()
         return self._getTargetClass()(context)
 
-    def test_class_conforms_to_IPendingRegistrations(self):
+    def test_class_conforms_to_IRegistrations(self):
         from zope.interface.verify import verifyClass
-        from cartouche.interfaces import IPendingRegistrations
-        verifyClass(IPendingRegistrations, self._getTargetClass())
+        from cartouche.interfaces import IRegistrations
+        verifyClass(IRegistrations, self._getTargetClass())
 
-    def test_instance_conforms_to_IPendingRegistrations(self):
+    def test_instance_conforms_to_IRegistrations(self):
         from zope.interface.verify import verifyObject
-        from cartouche.interfaces import IPendingRegistrations
-        verifyObject(IPendingRegistrations, self._makeOne())
+        from cartouche.interfaces import IRegistrations
+        verifyObject(IRegistrations, self._makeOne())
 
     def test_set_context_is_root_no_cartouche(self):
         context = self._makeContext()
         adapter = self._makeOne(context)
 
-        adapter.set('phred@example.com', 'token')
+        adapter.set('phred@example.com', token='token')
 
         self._verifyInfo(context.cartouche.pending['phred@example.com'])
 
@@ -90,7 +91,7 @@ class PendingRegistrationsTests(_Base, unittest.TestCase):
         cartouche = context.cartouche = self._makeCartouche()
         adapter = self._makeOne(context)
 
-        adapter.set('phred@example.com', 'token')
+        adapter.set('phred@example.com', token='token')
 
         self._verifyInfo(cartouche.pending['phred@example.com'])
 
@@ -101,7 +102,7 @@ class PendingRegistrationsTests(_Base, unittest.TestCase):
         context = parent['context'] = self._makeContext()
         adapter = self._makeOne(context)
 
-        adapter.set('phred@example.com', 'token')
+        adapter.set('phred@example.com', token='token')
 
         self._verifyInfo(cartouche.pending['phred@example.com'])
 
@@ -291,6 +292,69 @@ class Test_confirm_registration_view(_Base, unittest.TestCase):
                         if not x[0].startswith('_')]
         self.assertEqual(inputs,
                          [('email', 'phred@example.com'), ('token', '')])
+
+    def test_POST_w_validation_errors(self):
+        import re
+        SUMMARY_ERROR = re.compile('<h3[^>]*>There was a problem', re.MULTILINE)
+        FIELD_ERROR = re.compile('<p class="error"', re.MULTILINE)
+        POST = {'email': '',
+                'token': '',
+                'confirm': '',
+               }
+        context = self._makeContext()
+        cartouche = context.cartouche = self._makeCartouche()
+        request = self._makeRequest(POST=POST, view_name='register.html')
+        mtr = self.config.testing_add_template('templates/main.pt')
+
+        info = self._callFUT(context, request)
+
+        main_template = info['main_template']
+        self.failUnless(main_template is mtr.implementation())
+        rendered_form = info['rendered_form']
+        self.failUnless(SUMMARY_ERROR.search(rendered_form))
+        self.failUnless(FIELD_ERROR.search(rendered_form))
+
+    def test_POST_w_email_miss(self):
+        from webob.exc import HTTPFound
+        POST = {'email': 'phred@example.com',
+                'token': 'TOKEN',
+                'confirm': '',
+               }
+        context = self._makeContext()
+        cartouche = context.cartouche = self._makeCartouche()
+        request = self._makeRequest(POST=POST, view_name='register.html')
+
+        response = self._callFUT(request=request)
+
+        self.failUnless(isinstance(response, HTTPFound))
+        self.assertEqual(response.location,
+                         'http://example.com/register.html?message='
+                         'Please+register+first.')
+
+    def test_POST_w_token_miss(self):
+        from webob.exc import HTTPFound
+        EMAIL = 'phred@example.com'
+        POST = {'email': EMAIL,
+                'token': 'TOKEN',
+                'confirm': '',
+               }
+        context = self._makeContext()
+        cartouche = context.cartouche = self._makeCartouche()
+        cartouche.pending[EMAIL] = Dummy(token='OTHER')
+        request = self._makeRequest(POST=POST, view_name='register.html')
+
+        response = self._callFUT(context=context, request=request)
+
+        self.failUnless(isinstance(response, HTTPFound))
+        self.assertEqual(response.location,
+                         'http://example.com/confirm_registration.html'
+                         '?message=Please+copy+the+token+from+your'
+                         '+confirmation+e-mail.')
+
+
+class Dummy:
+    def __init__(self, **kw):
+        self.__dict__.update(kw)
 
 
 class DummyMailer:

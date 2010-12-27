@@ -23,27 +23,35 @@ class ICartouche(Interface):
     pending = Attribute(u'Pending registrations, keyed by email')
 
 
-class IRegistrationInfo(Interface):
-    email = Attribute(u'Registered e-mail address')
-    token = Attribute(u'Token generated at registration')
-
-
-class IPendingRegistrations(Interface):
-    """ Adapter interface:  store / retrieve pending registration info.
-    """
-    def set(email, token):
-        """ Store registration info for 'email'.
-        """
-
-    def get(email, default=None):
-        """ Return IRegistrationInfo for 'email'.
-
-        Return 'default' if not found
-        """
-
 class ITokenGenerator(Interface):
     """ Utility interface:  generate tokens for confirmation e-mails.
     """
     def getToken():
         """ Return a unique, quasi-random token as a string.
+        """
+
+
+class IPendingRegistrationInfo(Interface):
+    email = Attribute(u'Registered e-mail address')
+    token = Attribute(u'Token generated at registration')
+
+
+class IRegistrationInfo(Interface):
+    email = Attribute(u'Registered e-mail address')
+    password = Attribute(u'Hashed password')
+    security_question = Attribute(u'Security question')
+    security_answer = Attribute(u'Answer to security question')
+
+
+class IRegistrations(Interface):
+    """ Adapter interface:  store / retrieve pending registration info.
+    """
+    def set(key, **kw):
+        """ Store registration info for 'key'.
+        """
+
+    def get(key, default=None):
+        """ Return info for 'key'.
+
+        Return 'default' if not found
         """

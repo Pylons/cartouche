@@ -1,7 +1,7 @@
 # Testing app / config
 from repoze.sendmail.interfaces import IMailDelivery
 from zope.interface import implements
-from cartouche.interfaces import IPendingRegistrations
+from cartouche.interfaces import IRegistrations
 
 DIVIDER =  "#" * 80
 
@@ -23,7 +23,7 @@ class Dummy(object):
 
 
 class FauxPendingRegistrations(object):
-    implements(IPendingRegistrations)
+    implements(IRegistrations)
     _pending_store = {} # yes, a mutable default
 
     def __init__(self, context):
