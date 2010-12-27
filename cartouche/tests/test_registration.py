@@ -215,8 +215,8 @@ class Test_register_view(_Base, unittest.TestCase):
 
         self.failUnless(isinstance(response, HTTPFound))
         self.assertEqual(response.location,
-                         'http://example.com/register.html?email=%s'
-                            % quote(TO_EMAIL))
+                         'http://example.com/confirm_registration.html'
+                           '?email=%s' % quote(TO_EMAIL))
         self.assertEqual(delivery._sent[0], FROM_EMAIL)
         self.assertEqual(list(delivery._sent[1]), [TO_EMAIL])
         info = cartouche.pending[TO_EMAIL]
@@ -258,7 +258,9 @@ class Test_confirm_registration_view(_Base, unittest.TestCase):
                          'Please+register+first.')
 
     def test_GET_w_email_hit(self):
-        from deform import Form
+        import re
+        INPUT = re.compile('<input.*name="(?P<name>\w+)" '
+                           'value="(?P<value>[^"]*)"', re.MULTILINE)
         EMAIL = 'phred@example.com'
         context = self._makeContext()
         cartouche = context.cartouche = self._makeCartouche()
@@ -268,15 +270,11 @@ class Test_confirm_registration_view(_Base, unittest.TestCase):
 
         info = self._callFUT(context, request)
 
-        appstruct = info['appstruct']
-        self.assertEqual(appstruct['email'], EMAIL)
-        form = info['form']
-        self.failUnless(isinstance(form, Form))
-        self.assertEqual(len(form.children), 2)
-        self.assertEqual(form.children[0].name, 'email')
-        widget = form.children[0].widget
-        self.failUnless(widget.template is widget.readonly_template)
-        self.assertEqual(form.children[1].name, 'token')
+        rendered_form = info['rendered_form']
+        inputs = [x for x in INPUT.findall(rendered_form)
+                        if not x[0].startswith('_')]
+        self.assertEqual(inputs,
+                         [('email', 'phred@example.com'), ('token', '')])
 
 
 class DummyMailer:
