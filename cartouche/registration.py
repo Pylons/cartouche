@@ -16,14 +16,18 @@ from pkg_resources import resource_filename
 from uuid import uuid4
 
 from colander import Email
+from colander import Invalid
 from colander import Schema
 from colander import SchemaNode
 from colander import String
+from colander import deferred
 from colander import null
 from deform import Form
 from deform import ValidationFailure
 from deform.template import default_dir as deform_templates_dir
 from deform.widget import CheckedPasswordWidget
+from deform.widget import HiddenWidget
+from deform.widget import PasswordWidget
 from deform.widget import SelectWidget
 from pyramid.renderers import get_renderer
 from pyramid.url import model_url
@@ -166,9 +170,49 @@ class SecurityQuestion(Schema):
     question = SchemaNode(String(), widget=SelectWidget(values=QUESTIONS))
     answer = SchemaNode(String())
 
+@deferred
+def login_name_validator(node, kw):
+    current_login_name = kw.get('current_login_name')
+    by_login = kw.get('by_login')
+    if current_login_name is not None and by_login is not None:
+        def _check(node, value):
+            if value != current_login_name:
+                if by_login.get(value, None) is not None:
+                    raise Invalid('Login name not available')
+        return _check
+
+@deferred
+def old_password_widget(node, kw):
+    if kw.get('old_password') is None:
+        return HiddenWidget()
+    return PasswordWidget()
+
+@deferred
+def old_password_missing(node, kw):
+    if kw.get('old_password') is None:
+        return ''
+
+@deferred
+def old_password_validator(node, kw):
+    old_password = kw.get('old_password')
+    if old_password is not None:
+        pwd_mgr = SSHAPasswordManager()
+        def _check(node, value):
+            if not pwd_mgr.checkPassword(old_password, value):
+                raise Invalid('Old password incorrect')
+        return _check
+
 class EditAccount(Schema):
-    login_name = SchemaNode(String())
-    password = SchemaNode(String(), widget=CheckedPasswordWidget())
+    login_name = SchemaNode(String(),
+                            validator=login_name_validator,
+                           )
+    old_password = SchemaNode(String(),
+                              widget=old_password_widget,
+                              missing=old_password_missing,
+                              validator=old_password_validator,
+                             )
+    password = SchemaNode(String(),
+                          widget=CheckedPasswordWidget())
     security = SecurityQuestion()
 
 
@@ -340,6 +384,11 @@ def edit_account_view(context, request):
     if by_email is None:  #pragma NO COVERAGE
         by_email = ByEmailRegistrations(context)
 
+    by_login = request.registry.queryAdapter(context, IRegistrations,
+                                            name='by_login')
+    if by_login is None:  #pragma NO COVERAGE
+        by_login = ByLoginRegistrations(context)
+
     identity = request.environ.get('repoze.who.identity')
     if identity is None:
         return HTTPUnauthorized()
@@ -354,7 +403,10 @@ def edit_account_view(context, request):
                               'answer': account_info.security_answer or '',
                              },
                 }
-    form = Form(EditAccount(), buttons=('update',))
+    schema = EditAccount().bind(current_login_name=account_info.login,
+                                by_login=by_login,
+                                old_password=account_info.password)
+    form = Form(schema, buttons=('update',))
     rendered_form = form.render(appstruct)
 
     if 'update' in request.POST:
@@ -363,14 +415,10 @@ def edit_account_view(context, request):
         except ValidationFailure, e:
             rendered_form = e.render()
         else:
-            pwd_mgr = SSHAPasswordManager()
-            by_login = request.registry.queryAdapter(context, IRegistrations,
-                                                    name='by_login')
-            if by_login is None:  #pragma NO COVERAGE
-                by_login = ByLoginRegistrations(context)
             old_login = account_info.login
             by_login.remove(old_login)
             new_login = account_info.login = appstruct['login_name']
+            pwd_mgr = SSHAPasswordManager()
             account_info.password = pwd_mgr.encodePassword(
                                             appstruct['password'])
             account_info.security_question = appstruct['security']['question']

@@ -868,6 +868,7 @@ class Test_edit_account_view(_Base, unittest.TestCase):
         inputs = [x for x in INPUT.findall(rendered_form)
                         if not x[0].startswith('_')]
         self.assertEqual(inputs, [('login_name', EMAIL),
+                                  ('old_password', ''), # hidden
                                   ('value', ''),
                                   ('confirm', ''),
                                   ('answer', ''),
@@ -881,6 +882,7 @@ class Test_edit_account_view(_Base, unittest.TestCase):
 
     def test_GET_w_known_credentials_later_edit(self):
         import re
+        from zope.password.password import SSHAPasswordManager
         INPUT = re.compile('<input.* name="(?P<name>\w+)" '
                            'value="(?P<value>[^"]*)"', re.MULTILINE)
         SELECT = re.compile('<select.* name="(?P<name>\w+)" ', re.MULTILINE)
@@ -889,10 +891,14 @@ class Test_edit_account_view(_Base, unittest.TestCase):
                                  'selected="(?P<selected>\w+)"', re.MULTILINE)
         EMAIL = 'phred@example.com'
         ENVIRON = {'repoze.who.identity': {'repoze.who.userid': EMAIL}}
+        pwd_mgr = SSHAPasswordManager()
+        encoded = pwd_mgr.encodePassword('old_password')
         by_email = self._registerByEmail()
-        by_email[EMAIL] = Dummy(login='login', password='password',
+        by_email[EMAIL] = Dummy(login='login',
+                                password=encoded,
                                 security_question='borncity',
-                                security_answer='FXBG')
+                                security_answer='FXBG',
+                               )
         mtr = self.config.testing_add_template('templates/main.pt')
         request = self._makeRequest(environ=ENVIRON)
 
@@ -903,6 +909,7 @@ class Test_edit_account_view(_Base, unittest.TestCase):
         inputs = [x for x in INPUT.findall(rendered_form)
                         if not x[0].startswith('_')]
         self.assertEqual(inputs, [('login_name', 'login'),
+                                  ('old_password', ''),
                                   ('value', ''),
                                   ('confirm', ''),
                                   ('answer', 'FXBG'),
@@ -914,22 +921,66 @@ class Test_edit_account_view(_Base, unittest.TestCase):
         options_sel = [x for x in OPTIONS_SEL.findall(rendered_form)]
         self.assertEqual(options_sel, [('borncity', 'True')])
 
-    def test_POST_w_password_mismatch(self):
+    def test_POST_w_old_password_miss(self):
         import re
         from webob.multidict import MultiDict
+        from zope.password.password import SSHAPasswordManager
         SUMMARY_ERROR = re.compile('<h3[^>]*>There was a problem', re.MULTILINE)
         FIELD_ERROR = re.compile('<p class="error"', re.MULTILINE)
         EMAIL = 'phred@example.com'
         ENVIRON = {'repoze.who.identity': {'repoze.who.userid': EMAIL}}
+        pwd_mgr = SSHAPasswordManager()
+        encoded = pwd_mgr.encodePassword('old_password')
         by_email = self._registerByEmail()
         by_email[EMAIL] = record = Dummy(login='before',
                                          email=EMAIL,
-                                         password='old_password',
+                                         password=encoded,
                                          security_question='borncity',
                                          security_answer='FXBG')
         by_login = self._registerByLogin()
         by_login['before'] = record
         POST = MultiDict([('login_name', 'after'),
+                          ('old_password', 'bogus'),
+                          ('__start__', 'password:mapping'),
+                          ('value', 'newpassword'),
+                          ('confirm', 'newpassword'),
+                          ('__end__', 'password:mapping'),
+                          ('__start__', 'security:mapping'),
+                          ('question', 'petname'),
+                          ('answer', 'Fido'),
+                          ('__end__', 'security:mapping'),
+                          ('update', ''),
+                         ])
+        request = self._makeRequest(POST=POST, environ=ENVIRON)
+
+        info = self._callFUT(request=request)
+
+        rendered_form = info['rendered_form']
+        self.failUnless(SUMMARY_ERROR.search(rendered_form))
+        self.failUnless(FIELD_ERROR.search(rendered_form))
+        self.failUnless('before' in by_login)
+        self.failIf('after' in by_login)
+
+    def test_POST_w_password_confirm_mismatch(self):
+        import re
+        from webob.multidict import MultiDict
+        from zope.password.password import SSHAPasswordManager
+        SUMMARY_ERROR = re.compile('<h3[^>]*>There was a problem', re.MULTILINE)
+        FIELD_ERROR = re.compile('<p class="error"', re.MULTILINE)
+        EMAIL = 'phred@example.com'
+        ENVIRON = {'repoze.who.identity': {'repoze.who.userid': EMAIL}}
+        pwd_mgr = SSHAPasswordManager()
+        encoded = pwd_mgr.encodePassword('old_password')
+        by_email = self._registerByEmail()
+        by_email[EMAIL] = record = Dummy(login='before',
+                                         email=EMAIL,
+                                         password=encoded,
+                                         security_question='borncity',
+                                         security_answer='FXBG')
+        by_login = self._registerByLogin()
+        by_login['before'] = record
+        POST = MultiDict([('login_name', 'after'),
+                          ('old_password', 'old_password'),
                           ('__start__', 'password:mapping'),
                           ('value', 'newpassword'),
                           ('confirm', 'mismatch'),
@@ -956,15 +1007,18 @@ class Test_edit_account_view(_Base, unittest.TestCase):
         from zope.password.password import SSHAPasswordManager
         EMAIL = 'phred@example.com'
         ENVIRON = {'repoze.who.identity': {'repoze.who.userid': EMAIL}}
+        pwd_mgr = SSHAPasswordManager()
+        encoded = pwd_mgr.encodePassword('old_password')
         by_email = self._registerByEmail()
         by_email[EMAIL] = record = Dummy(login='before',
                                          email=EMAIL,
-                                         password='old_password',
+                                         password=encoded,
                                          security_question='borncity',
                                          security_answer='FXBG')
         by_login = self._registerByLogin()
         by_login['before'] = record
         POST = MultiDict([('login_name', 'after'),
+                          ('old_password', 'old_password'),
                           ('__start__', 'password:mapping'),
                           ('value', 'newpassword'),
                           ('confirm', 'newpassword'),
@@ -986,7 +1040,6 @@ class Test_edit_account_view(_Base, unittest.TestCase):
 
         new_record = by_email[EMAIL]
         self.assertEqual(new_record.login, 'after')
-        pwd_mgr = SSHAPasswordManager()
         self.failUnless(pwd_mgr.checkPassword(new_record.password,
                                               'newpassword'))
         self.assertEqual(new_record.security_question, 'petname')

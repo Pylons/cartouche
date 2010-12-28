@@ -37,11 +37,11 @@ Registration
 Update Account Login
 --------------------
 
-- [/] Update login / password / security question.
+- [X] Update login / password / security question.
 
       * Allow user to pick login name, defaulting to e-mail address.
 
-      o *If* the existing password is set, query for it.
+      * *If* the existing password is set, query for it.
 
       * Allow the user to enter and confirm a password.
 
@@ -52,15 +52,15 @@ Update Account Login
       * Store the updated record both by email and by (new) login;
         remove any record for the old login.
 
-      o Check for uniqueness of login.
+      * Check for uniqueness of login name.
 
 
 Login / Logout
 --------------
 
-- [/] Implement view following the ``repoze.who`` 2.0 docs.
+- [/] Implement login view following the ``repoze.who`` 2.0 docs.
 
-      o Compare passwords using ``zope.password`` utility.
+      * Compare passwords using ``zope.password`` utility.
 
 
 Password Recovery / Reset
