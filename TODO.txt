@@ -37,17 +37,22 @@ Registration
 Update Account Login
 --------------------
 
-- [_] Update login / password / security question.
+- [/] Update login / password / security question.
 
-      o Allow user to pick login name, defaulting to e-mail address.
+      * Allow user to pick login name, defaulting to e-mail address.
 
       o *If* the existing password is set, query for it.
 
-      o Allow the user to enter and confirm a password.
+      * Allow the user to enter and confirm a password.
 
-      o Hash password using ``zope.password`` utility.
+      * Hash password using ``zope.password`` utility.
 
-      o Auto-login the user using the ``repoze.who`` API.
+      * Update the security question and answer.
+
+      * Store the updated record both by email and by (new) login;
+        remove any record for the old login.
+
+      o Check for uniqueness of login.
 
 
 Login / Logout

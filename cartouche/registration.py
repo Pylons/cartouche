@@ -23,6 +23,7 @@ from colander import null
 from deform import Form
 from deform import ValidationFailure
 from deform.template import default_dir as deform_templates_dir
+from deform.widget import CheckedPasswordWidget
 from deform.widget import SelectWidget
 from pyramid.renderers import get_renderer
 from pyramid.url import model_url
@@ -30,8 +31,11 @@ from repoze.sendmail.interfaces import IMailDelivery
 from repoze.sendmail.delivery import DirectMailDelivery
 from repoze.sendmail.mailer import SMTPMailer
 from repoze.who.api import get_api
+from webob.exc import HTTPForbidden
 from webob.exc import HTTPFound
+from webob.exc import HTTPUnauthorized
 from zope.interface import implements
+from zope.password.password import SSHAPasswordManager
 
 from cartouche.interfaces import IAutoLogin
 from cartouche.interfaces import IRegistrations
@@ -138,18 +142,6 @@ templates_dir = resource_filename('cartouche', 'templates/')
 Form.set_zpt_renderer([templates_dir, deform_templates_dir])
 
 
-QUESTIONS = [
-    ('color', 'What is your favorite color?'),
-    ('borncity', 'In what city were you born?'),
-    ('petname', 'What was the name of your favorite childhood pet?'),
-]
-
-
-class SecurityQuestion(Schema):
-    question = SchemaNode(String(), widget=SelectWidget(values=QUESTIONS))
-    answer = SchemaNode(String())
-
-
 class Signup(Schema):
     email = SchemaNode(String(), validator=Email())
 
@@ -161,6 +153,23 @@ class Confirm(Schema):
     token = SchemaNode(String(),
                        description="Enter the token from the registration "
                                    "confirmation e-mail you received.")
+
+
+QUESTIONS = [
+    ('color', 'What is your favorite color?'),
+    ('borncity', 'In what city were you born?'),
+    ('petname', 'What was the name of your favorite childhood pet?'),
+]
+
+
+class SecurityQuestion(Schema):
+    question = SchemaNode(String(), widget=SelectWidget(values=QUESTIONS))
+    answer = SchemaNode(String())
+
+class EditAccount(Schema):
+    login_name = SchemaNode(String())
+    password = SchemaNode(String(), widget=CheckedPasswordWidget())
+    security = SecurityQuestion()
 
 
 def getRandomToken(request):
@@ -322,4 +331,57 @@ def welcome_view(context, request):
     main_template = get_renderer('templates/main.pt')
     return {'main_template': main_template.implementation(),
             'authenticated_user': identity['repoze.who.userid'],
+           }
+
+
+def edit_account_view(context, request):
+    by_email = request.registry.queryAdapter(context, IRegistrations,
+                                             name='by_email')
+    if by_email is None:  #pragma NO COVERAGE
+        by_email = ByEmailRegistrations(context)
+
+    identity = request.environ.get('repoze.who.identity')
+    if identity is None:
+        return HTTPUnauthorized()
+
+    userid = identity['repoze.who.userid']
+    account_info = by_email.get(userid)
+    if account_info is None:
+        return HTTPForbidden()
+
+    appstruct = {'login_name': account_info.login,
+                 'security': {'question': account_info.security_question or '',
+                              'answer': account_info.security_answer or '',
+                             },
+                }
+    form = Form(EditAccount(), buttons=('update',))
+    rendered_form = form.render(appstruct)
+
+    if 'update' in request.POST:
+        try:
+            appstruct = form.validate(request.POST.items())
+        except ValidationFailure, e:
+            rendered_form = e.render()
+        else:
+            pwd_mgr = SSHAPasswordManager()
+            by_login = request.registry.queryAdapter(context, IRegistrations,
+                                                    name='by_login')
+            if by_login is None:  #pragma NO COVERAGE
+                by_login = ByLoginRegistrations(context)
+            old_login = account_info.login
+            by_login.remove(old_login)
+            new_login = account_info.login = appstruct['login_name']
+            account_info.password = pwd_mgr.encodePassword(
+                                            appstruct['password'])
+            account_info.security_question = appstruct['security']['question']
+            account_info.security_answer = appstruct['security']['answer']
+            by_email.set_record(userid, account_info)
+            by_login.set_record(new_login, account_info)
+            return HTTPFound(location=model_url(context, request,
+                                                request.view_name))
+
+    main_template = get_renderer('templates/main.pt')
+
+    return {'main_template': main_template.implementation(),
+            'rendered_form': rendered_form,
            }

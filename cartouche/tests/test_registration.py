@@ -819,6 +819,182 @@ class Test_welcome_view(_Base, unittest.TestCase):
         self.assertEqual(info['authenticated_user'], EMAIL)
 
 
+class Test_edit_account_view(_Base, unittest.TestCase):
+
+    def _callFUT(self, context=None, request=None):
+        from cartouche.registration import edit_account_view
+        if context is None:
+            context = self._makeContext()
+        if request is None:
+            request = self._makeRequest()
+        return edit_account_view(context, request)
+
+    def test_GET_wo_credentials(self):
+        from webob.exc import HTTPUnauthorized
+        response = self._callFUT()
+        self.failUnless(isinstance(response, HTTPUnauthorized))
+
+    def test_GET_w_unknown_credentials(self):
+        from webob.exc import HTTPForbidden
+        EMAIL = 'phred@example.com'
+        ENVIRON = {'repoze.who.identity': {'repoze.who.userid': EMAIL}}
+        by_email = self._registerByEmail()
+        request = self._makeRequest(environ=ENVIRON)
+
+        response = self._callFUT(request=request)
+
+        self.failUnless(isinstance(response, HTTPForbidden))
+
+    def test_GET_w_known_credentials_initial_edit(self):
+        import re
+        INPUT = re.compile('<input.* name="(?P<name>\w+)" '
+                           'value="(?P<value>[^"]*)"', re.MULTILINE)
+        SELECT = re.compile('<select.* name="(?P<name>\w+)" ', re.MULTILINE)
+        OPTIONS = re.compile('<option.*? value="(?P<value>[^"]+)"')
+        OPTIONS_SEL = re.compile('<option.*? value="(?P<value>\w+)" '
+                                 'selected="(?P<selected>\w*)" ', re.MULTILINE)
+        EMAIL = 'phred@example.com'
+        ENVIRON = {'repoze.who.identity': {'repoze.who.userid': EMAIL}}
+        by_email = self._registerByEmail()
+        by_email[EMAIL] = Dummy(login=EMAIL, email=EMAIL, password=None,
+                                security_question=None, security_answer=None)
+        mtr = self.config.testing_add_template('templates/main.pt')
+        request = self._makeRequest(environ=ENVIRON)
+
+        info = self._callFUT(request=request)
+
+        self.failUnless(info['main_template'] is mtr.implementation())
+        rendered_form = info['rendered_form']
+        inputs = [x for x in INPUT.findall(rendered_form)
+                        if not x[0].startswith('_')]
+        self.assertEqual(inputs, [('login_name', EMAIL),
+                                  ('value', ''),
+                                  ('confirm', ''),
+                                  ('answer', ''),
+                                 ])
+        selects = [x for x in SELECT.findall(rendered_form)]
+        self.assertEqual(selects, ['question'])
+        options = [x for x in OPTIONS.findall(rendered_form)]
+        self.assertEqual(options, ['color', 'borncity', 'petname'])
+        options_sel = [x for x in OPTIONS_SEL.findall(rendered_form)]
+        self.assertEqual(options_sel, [])
+
+    def test_GET_w_known_credentials_later_edit(self):
+        import re
+        INPUT = re.compile('<input.* name="(?P<name>\w+)" '
+                           'value="(?P<value>[^"]*)"', re.MULTILINE)
+        SELECT = re.compile('<select.* name="(?P<name>\w+)" ', re.MULTILINE)
+        OPTIONS = re.compile('<option.*? value="(?P<value>[^"]+)"')
+        OPTIONS_SEL = re.compile('<option.*? value="(?P<value>[^"]+)" '
+                                 'selected="(?P<selected>\w+)"', re.MULTILINE)
+        EMAIL = 'phred@example.com'
+        ENVIRON = {'repoze.who.identity': {'repoze.who.userid': EMAIL}}
+        by_email = self._registerByEmail()
+        by_email[EMAIL] = Dummy(login='login', password='password',
+                                security_question='borncity',
+                                security_answer='FXBG')
+        mtr = self.config.testing_add_template('templates/main.pt')
+        request = self._makeRequest(environ=ENVIRON)
+
+        info = self._callFUT(request=request)
+
+        self.failUnless(info['main_template'] is mtr.implementation())
+        rendered_form = info['rendered_form']
+        inputs = [x for x in INPUT.findall(rendered_form)
+                        if not x[0].startswith('_')]
+        self.assertEqual(inputs, [('login_name', 'login'),
+                                  ('value', ''),
+                                  ('confirm', ''),
+                                  ('answer', 'FXBG'),
+                                 ])
+        selects = [x for x in SELECT.findall(rendered_form)]
+        self.assertEqual(selects, ['question'])
+        options = [x for x in OPTIONS.findall(rendered_form)]
+        self.assertEqual(options, ['color', 'borncity', 'petname'])
+        options_sel = [x for x in OPTIONS_SEL.findall(rendered_form)]
+        self.assertEqual(options_sel, [('borncity', 'True')])
+
+    def test_POST_w_password_mismatch(self):
+        import re
+        from webob.multidict import MultiDict
+        SUMMARY_ERROR = re.compile('<h3[^>]*>There was a problem', re.MULTILINE)
+        FIELD_ERROR = re.compile('<p class="error"', re.MULTILINE)
+        EMAIL = 'phred@example.com'
+        ENVIRON = {'repoze.who.identity': {'repoze.who.userid': EMAIL}}
+        by_email = self._registerByEmail()
+        by_email[EMAIL] = record = Dummy(login='before',
+                                         email=EMAIL,
+                                         password='old_password',
+                                         security_question='borncity',
+                                         security_answer='FXBG')
+        by_login = self._registerByLogin()
+        by_login['before'] = record
+        POST = MultiDict([('login_name', 'after'),
+                          ('__start__', 'password:mapping'),
+                          ('value', 'newpassword'),
+                          ('confirm', 'mismatch'),
+                          ('__end__', 'password:mapping'),
+                          ('__start__', 'security:mapping'),
+                          ('question', 'petname'),
+                          ('answer', 'Fido'),
+                          ('__end__', 'security:mapping'),
+                          ('update', ''),
+                         ])
+        request = self._makeRequest(POST=POST, environ=ENVIRON)
+
+        info = self._callFUT(request=request)
+
+        rendered_form = info['rendered_form']
+        self.failUnless(SUMMARY_ERROR.search(rendered_form))
+        self.failUnless(FIELD_ERROR.search(rendered_form))
+        self.failUnless('before' in by_login)
+        self.failIf('after' in by_login)
+
+    def test_POST_w_password_match(self):
+        from webob.exc import HTTPFound
+        from webob.multidict import MultiDict
+        from zope.password.password import SSHAPasswordManager
+        EMAIL = 'phred@example.com'
+        ENVIRON = {'repoze.who.identity': {'repoze.who.userid': EMAIL}}
+        by_email = self._registerByEmail()
+        by_email[EMAIL] = record = Dummy(login='before',
+                                         email=EMAIL,
+                                         password='old_password',
+                                         security_question='borncity',
+                                         security_answer='FXBG')
+        by_login = self._registerByLogin()
+        by_login['before'] = record
+        POST = MultiDict([('login_name', 'after'),
+                          ('__start__', 'password:mapping'),
+                          ('value', 'newpassword'),
+                          ('confirm', 'newpassword'),
+                          ('__end__', 'password:mapping'),
+                          ('__start__', 'security:mapping'),
+                          ('question', 'petname'),
+                          ('answer', 'Fido'),
+                          ('__end__', 'security:mapping'),
+                          ('update', ''),
+                         ])
+        request = self._makeRequest(POST=POST, environ=ENVIRON,
+                                    view_name='edit_account.html')
+
+        response = self._callFUT(request=request)
+
+        self.failUnless(isinstance(response, HTTPFound))
+        self.assertEqual(response.location,
+                         'http://example.com/edit_account.html')
+
+        new_record = by_email[EMAIL]
+        self.assertEqual(new_record.login, 'after')
+        pwd_mgr = SSHAPasswordManager()
+        self.failUnless(pwd_mgr.checkPassword(new_record.password,
+                                              'newpassword'))
+        self.assertEqual(new_record.security_question, 'petname')
+        self.assertEqual(new_record.security_answer, 'Fido')
+        self.failUnless(by_email[EMAIL] is by_login['after'])
+        self.failIf('before' in by_login)
+
+
 class Dummy:
     def __init__(self, **kw):
         self.__dict__.update(kw)
