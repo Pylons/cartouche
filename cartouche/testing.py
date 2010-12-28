@@ -1,6 +1,7 @@
 # Testing app / config
 from repoze.sendmail.interfaces import IMailDelivery
 from zope.interface import implements
+from zope.password.password import SSHAPasswordManager
 from cartouche.interfaces import IRegistrations
 
 DIVIDER =  "#" * 80
@@ -75,6 +76,7 @@ class FauxAuthentication(object):
             password = identity['password']
         except KeyError:
             return None
-        record = FauxByLoginRegistrations.get(login)
-        if record.password == password:
+        pwd_mgr = SSHAPasswordManager()
+        record = FauxByLoginRegistrations(None).get(login)
+        if pwd_mgr.checkPassword(record.password, password):
             return login
