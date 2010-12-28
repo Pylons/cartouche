@@ -1,4 +1,5 @@
 # Testing app / config
+
 from pyramid.renderers import get_renderer
 from repoze.sendmail.interfaces import IMailDelivery
 from zope.interface import implements
@@ -81,7 +82,7 @@ class FauxAuthentication(object):
         pwd_mgr = SSHAPasswordManager()
         record = FauxByLoginRegistrations(None).get(login)
         if pwd_mgr.checkPassword(record.password, password):
-            return login
+            return record.email
 
 
 def homepage_view(context, request):
