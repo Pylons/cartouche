@@ -42,6 +42,13 @@
     renderer="templates/welcome.pt"
     />
 
+ <view
+    context=".interfaces.IRoot"
+    name="login.html"
+    view=".login.login_view"
+    renderer="templates/login.pt"
+    />
+
   <static
      name="static"
      path="static"
