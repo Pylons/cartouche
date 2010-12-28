@@ -581,8 +581,8 @@ class Test_register_view(_Base, unittest.TestCase):
 
     def test_GET_w_message(self):
         request = self._makeRequest(GET={'message': 'Foo'})
-
         mtr = self.config.testing_add_template('templates/main.pt')
+
         info = self._callFUT(request=request)
 
         self.assertEqual(info['message'], 'Foo')
