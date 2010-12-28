@@ -1090,6 +1090,7 @@ class Test_edit_account_view(_Base, unittest.TestCase):
         self.assertEqual(new_record.security_answer, 'Fido')
         self.failUnless(by_email[EMAIL] is by_login['after'])
         self.failIf('before' in by_login)
+        self.failUnless(by_login['after'] is record)
 
 
 class Dummy:
