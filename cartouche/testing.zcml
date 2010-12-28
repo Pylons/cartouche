@@ -23,6 +23,12 @@
 
  <view
     context=".models.Root"
+    view=".testing.homepage_view"
+    renderer="templates/testing_homepage.pt"
+    />
+
+ <view
+    context=".models.Root"
     name="register.html"
     view=".registration.register_view"
     renderer="templates/register.pt"

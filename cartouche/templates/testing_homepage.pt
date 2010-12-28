@@ -1,0 +1,36 @@
+<metal:body metal:use-macro="main_template">
+ <metal:slot metal:fill-slot="main">
+
+   <h1>cartouche test site</h1>
+
+   <div tal:condition="authenticated_user">
+    <p>You are logged in as <em title="${authenticated_user}">${login_name}</em>.</p>
+
+    <ul>
+     <li>
+      <a href="/edit_account.html"
+      >Update your login, password, and security question</a></li>
+     <li>
+      <a href="/edit_profile.html"
+      >Update your profile</a></li>
+     <li>
+      <a href="/logout.html"
+      >Log out</a></li>
+    </ul>
+   </div>
+
+   <div tal:condition="authenticated_user is None">
+    <p>You are not logged in. </p>
+
+    <ul>
+     <li>
+      <a href="/register.html"
+      >Register</a></li>
+     <li>
+      <a href="/login.html"
+      >Log In</a></li>
+    </ul>
+   </div>
+
+ </metal:slot>
+</metal:body>

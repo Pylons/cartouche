@@ -3,8 +3,7 @@
 
    <h1>Welcome to the site!</h1>
 
-   <p> You are registered using your e-mail address,
-       <em>${authenticated_user}</em> as your login ID.
+   <p> You are registered with login ID, <em>${authenticated_user}</em>.
        Please take a moment to set up your account: </p>
 
    <ul>
@@ -18,4 +17,3 @@
 
  </metal:slot>
 </metal:body>
-

@@ -1,7 +1,9 @@
 # Testing app / config
+from pyramid.renderers import get_renderer
 from repoze.sendmail.interfaces import IMailDelivery
 from zope.interface import implements
 from zope.password.password import SSHAPasswordManager
+
 from cartouche.interfaces import IRegistrations
 
 DIVIDER =  "#" * 80
@@ -80,3 +82,25 @@ class FauxAuthentication(object):
         record = FauxByLoginRegistrations(None).get(login)
         if pwd_mgr.checkPassword(record.password, password):
             return login
+
+
+def homepage_view(context, request):
+    by_email = request.registry.queryAdapter(context, IRegistrations,
+                                                name='by_email')
+    if by_email is None:  #pragma NO COVERAGE
+        by_email = FauxByEmailRegistrations(context)
+    identity = request.environ.get('repoze.who.identity')
+    if identity is None:
+        authenticated_user = login_name = None
+    else:
+        authenticated_user = identity['repoze.who.userid']
+        account_info = by_email.get(authenticated_user) 
+        if account_info is None:
+            authenticated_user = login_name = None
+        else:
+            login_name = account_info.login
+    main_template = get_renderer('templates/main.pt')
+    return {'main_template': main_template.implementation(),
+            'authenticated_user': authenticated_user,
+            'login_name': login_name,
+           }
