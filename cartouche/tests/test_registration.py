@@ -1001,6 +1001,50 @@ class Test_edit_account_view(_Base, unittest.TestCase):
         self.failUnless('before' in by_login)
         self.failIf('after' in by_login)
 
+    def test_POST_w_password_match_new_login_not_unique(self):
+        import re
+        from webob.multidict import MultiDict
+        from zope.password.password import SSHAPasswordManager
+        SUMMARY_ERROR = re.compile('<h3[^>]*>There was a problem', re.MULTILINE)
+        FIELD_ERROR = re.compile('<p class="error"', re.MULTILINE)
+        EMAIL = 'phred@example.com'
+        ENVIRON = {'repoze.who.identity': {'repoze.who.userid': EMAIL}}
+        pwd_mgr = SSHAPasswordManager()
+        encoded = pwd_mgr.encodePassword('old_password')
+        by_email = self._registerByEmail()
+        by_email[EMAIL] = record = Dummy(login='before',
+                                         email=EMAIL,
+                                         password=encoded,
+                                         security_question='borncity',
+                                         security_answer='FXBG')
+        by_login = self._registerByLogin()
+        by_login['before'] = record
+        other_user = Dummy(login='taken',
+                           email='taken@example.com',
+                          )
+        by_login['taken'] = other_user
+        POST = MultiDict([('login_name', 'taken'),
+                          ('old_password', 'old_password'),
+                          ('__start__', 'password:mapping'),
+                          ('value', 'newpassword'),
+                          ('confirm', 'newpassword'),
+                          ('__end__', 'password:mapping'),
+                          ('__start__', 'security:mapping'),
+                          ('question', 'petname'),
+                          ('answer', 'Fido'),
+                          ('__end__', 'security:mapping'),
+                          ('update', ''),
+                         ])
+        request = self._makeRequest(POST=POST, environ=ENVIRON)
+
+        info = self._callFUT(request=request)
+
+        rendered_form = info['rendered_form']
+        self.failUnless(SUMMARY_ERROR.search(rendered_form))
+        self.failUnless(FIELD_ERROR.search(rendered_form))
+        self.failUnless(by_login['before'] is record)
+        self.failUnless(by_login['taken'] is other_user)
+
     def test_POST_w_password_match(self):
         from webob.exc import HTTPFound
         from webob.multidict import MultiDict
