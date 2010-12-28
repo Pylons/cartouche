@@ -13,7 +13,7 @@
 ##############################################################################
 import unittest
 
-class LoginTests(unittest.TestCase):
+class _Base(object):
 
     def setUp(self):
         from pyramid.configuration import Configurator
@@ -30,6 +30,8 @@ class LoginTests(unittest.TestCase):
     def _makeRequest(self, **kw):
         from pyramid.testing import DummyRequest
         return DummyRequest(**kw)
+
+class LoginTests(_Base, unittest.TestCase):
 
     def _callFUT(self, context=None, request=None):
         from cartouche.login import login_view
@@ -112,12 +114,36 @@ class LoginTests(unittest.TestCase):
 
         self.failUnless(isinstance(response, HTTPFound))
         self.assertEqual(response.location, 'http://example.com/')
-        for key, value in api.HEADERS:
+        for key, value in api.LOGIN_HEADERS:
             self.failUnless(response.headers[key] is value)
+
+class LogoutTests(_Base, unittest.TestCase):
+
+    def _callFUT(self, context=None, request=None):
+        from cartouche.login import logout_view
+        if context is None:
+            context = self._makeContext()
+        if request is None:
+            request = self._makeRequest()
+        return logout_view(context, request)
+
+    def test_GET(self):
+        from webob.exc import HTTPFound
+        api = FauxAPI({'known': 'valid'})
+        request = self._makeRequest(environ={'repoze.who.api': api})
+
+        response = self._callFUT(request=request)
+
+        self.failUnless(isinstance(response, HTTPFound))
+        self.assertEqual(response.location, 'http://example.com/')
+
+        for key, value in api.LOGOUT_HEADERS:
+            self.assertEqual(response.headers.get(key), value)
 
 
 class FauxAPI(object):
-    HEADERS = [('Faux-Cookie', 'gingersnap')]
+    LOGIN_HEADERS = [('Faux-Cookie', 'gingersnap')]
+    LOGOUT_HEADERS = [('Forget', 'Me')]
     def __init__(self, known=None):
         if known is None:
             known = {}
@@ -127,5 +153,8 @@ class FauxAPI(object):
         login = credentials.get('login')
         password = credentials.get('password')
         if self._known.get(login) == password:
-            return login, self.HEADERS
+            return login, self.LOGIN_HEADERS
         return None, ()
+    def logout(self, identifier_name=None):
+        self._called_with = (identifier_name,)
+        return self.LOGOUT_HEADERS

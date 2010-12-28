@@ -55,3 +55,8 @@ def login_view(context, request):
             'rendered_form': rendered_form,
             'message': message
            }
+
+def logout_view(context, request):
+    api = get_api(request.environ)
+    headers =  api.logout()
+    return HTTPFound(location=model_url(context, request), headers=headers)

@@ -62,6 +62,12 @@
     renderer="templates/login.pt"
     />
 
+ <view
+    context=".interfaces.IRoot"
+    name="logout.html"
+    view=".login.logout_view"
+    />
+
   <static
      name="static"
      path="static"
