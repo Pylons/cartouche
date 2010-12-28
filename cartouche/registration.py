@@ -175,7 +175,8 @@ def autoLoginViaAuthTkt(userid, request):
     if api is None:
         raise ValueError("Couldn't find / create repoze.who API object")
     credentials = {'repoze.who.plugins.auth_tkt.userid': userid}
-    identity, headers = api.login(credentials, 'auth_tkt')
+    plugin_id = request.registry.settings.get('auth_tkt_plugin_id', 'auth_tkt')
+    identity, headers = api.login(credentials, plugin_id)
     return headers
 
 # By default, deliver e-mail via localhost, port 25.
