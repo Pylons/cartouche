@@ -13,19 +13,6 @@
 ##############################################################################
 import unittest
 
-""" Form for testing the password confirm widget:
-
-        from webob.multidict import MultiDict
-        POST = MultiDict([('login_name', 'known'),
-                          ('__start__', 'password:mapping'),
-                          ('value', 'valid'),
-                          ('confirm', 'valid'),
-                          ('__end__', 'password:mapping'),
-                          ('login', ''),
-                         ])
-
-"""
-
 class LoginTests(unittest.TestCase):
 
     def setUp(self):
