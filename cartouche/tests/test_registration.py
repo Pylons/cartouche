@@ -100,6 +100,10 @@ class _Base(object):
                                              name='confirmed')
         return by_uuid, by_login, by_email
 
+    def _registerAutoLogin(self):
+        from cartouche.registration import autoLoginViaAuthTkt
+        self.config.registry.registerUtility(autoLoginViaAuthTkt)
+
 
 class Test_getRandomToken(_Base, unittest.TestCase):
 
@@ -342,6 +346,40 @@ class Test_confirm_registration_view(_Base, unittest.TestCase):
                          '?message=Please+copy+the+token+from+your'
                          '+confirmation+e-mail.')
 
+    def test_POST_w_token_hit_no_auto_login(self):
+        from webob.exc import HTTPFound
+        EMAIL = 'phred@example.com'
+        POST = {'email': EMAIL,
+                'token': 'TOKEN',
+                'confirm': '',
+               }
+        pending = self._registerPendingRegistrations()
+        pending[EMAIL] = Dummy(token='TOKEN')
+        by_uuid, by_login, by_email = self._registerConfirmed()
+        HEADERS = [('Faux-Cookie', 'gingersnap')]
+        api = FauxAPI(HEADERS)
+        context = self._makeContext()
+        request = self._makeRequest(POST=POST,
+                                    environ={'repoze.who.api': api})
+
+        response = self._callFUT(context, request)
+
+        self.failUnless(isinstance(response, HTTPFound))
+        for key, value in HEADERS:
+            self.assertEqual(response.headers.get(key), None)
+        self.assertEqual(response.location,
+                         'http://example.com/edit_account.html')
+
+        self.failIf(EMAIL in pending)
+        uuid = by_email[EMAIL]
+        self.assertEqual(by_login[EMAIL], uuid)
+        self.assertEqual(by_uuid[uuid].email, EMAIL)
+        self.assertEqual(by_uuid[uuid].login, EMAIL)
+        self.assertEqual(by_uuid[uuid].password, None)
+        self.assertEqual(by_uuid[uuid].security_question, None)
+        self.assertEqual(by_uuid[uuid].security_answer, None)
+        self.failIf('_called_with' in api.__dict__)
+
     def test_POST_w_token_hit_no_after_confirmation_url_setting(self):
         from webob.exc import HTTPFound
         EMAIL = 'phred@example.com'
@@ -349,6 +387,7 @@ class Test_confirm_registration_view(_Base, unittest.TestCase):
                 'token': 'TOKEN',
                 'confirm': '',
                }
+        self._registerAutoLogin()
         pending = self._registerPendingRegistrations()
         pending[EMAIL] = Dummy(token='TOKEN')
         by_uuid, by_login, by_email = self._registerConfirmed()
@@ -385,6 +424,7 @@ class Test_confirm_registration_view(_Base, unittest.TestCase):
                 'token': 'TOKEN',
                 'confirm': '',
                }
+        self._registerAutoLogin()
         pending = self._registerPendingRegistrations()
         pending[EMAIL] = Dummy(token='TOKEN')
         by_uuid, by_login, by_email = self._registerConfirmed()
@@ -457,6 +497,7 @@ class Test_edit_account_view(_Base, unittest.TestCase):
         inputs = [x for x in INPUT.findall(rendered_form)
                         if not x[0].startswith('_')]
         self.assertEqual(inputs, [('login_name', EMAIL),
+                                  ('email', EMAIL),
                                   ('old_password', ''), # hidden
                                   ('value', ''),
                                   ('confirm', ''),
@@ -483,13 +524,13 @@ class Test_edit_account_view(_Base, unittest.TestCase):
         pwd_mgr = SSHAPasswordManager()
         encoded = pwd_mgr.encodePassword('old_password')
         by_uuid, by_login, by_email = self._registerConfirmed()
-        by_uuid['UUID'] = Dummy(login='login',
+        by_uuid['UUID'] = Dummy(login='before',
                                 email=EMAIL,
                                 password=encoded,
                                 security_question='borncity',
                                 security_answer='FXBG',
                                )
-        by_email[EMAIL] = by_login[EMAIL] = 'UUID'
+        by_email[EMAIL] = by_login['login'] = 'UUID'
         mtr = self.config.testing_add_template('templates/main.pt')
         request = self._makeRequest(environ=ENVIRON)
 
@@ -499,7 +540,8 @@ class Test_edit_account_view(_Base, unittest.TestCase):
         rendered_form = info['rendered_form']
         inputs = [x for x in INPUT.findall(rendered_form)
                         if not x[0].startswith('_')]
-        self.assertEqual(inputs, [('login_name', 'login'),
+        self.assertEqual(inputs, [('login_name', 'before'),
+                                  ('email', EMAIL),
                                   ('old_password', ''),
                                   ('value', ''),
                                   ('confirm', ''),
@@ -518,18 +560,20 @@ class Test_edit_account_view(_Base, unittest.TestCase):
         from zope.password.password import SSHAPasswordManager
         SUMMARY_ERROR = re.compile('<h3[^>]*>There was a problem', re.MULTILINE)
         FIELD_ERROR = re.compile('<p class="error"', re.MULTILINE)
-        EMAIL = 'phred@example.com'
+        OLD_EMAIL = 'old_phred@example.com'
+        NEW_EMAIL = 'new_phred@example.com'
         ENVIRON = {'repoze.who.identity': {'repoze.who.userid': 'UUID'}}
         pwd_mgr = SSHAPasswordManager()
         encoded = pwd_mgr.encodePassword('old_password')
         by_uuid, by_login, by_email = self._registerConfirmed()
         by_uuid['UUID'] = Dummy(login='before',
-                                email=EMAIL,
+                                email=OLD_EMAIL,
                                 password=encoded,
                                 security_question='borncity',
                                 security_answer='FXBG')
-        by_email[EMAIL] = by_login['before'] = 'UUID'
+        by_email[OLD_EMAIL] = by_login['before'] = 'UUID'
         POST = MultiDict([('login_name', 'after'),
+                          ('email', NEW_EMAIL),
                           ('old_password', 'bogus'),
                           ('__start__', 'password:mapping'),
                           ('value', 'newpassword'),
@@ -548,6 +592,8 @@ class Test_edit_account_view(_Base, unittest.TestCase):
         rendered_form = info['rendered_form']
         self.failUnless(SUMMARY_ERROR.search(rendered_form))
         self.failUnless(FIELD_ERROR.search(rendered_form))
+        self.failUnless(OLD_EMAIL in by_email)
+        self.failIf(NEW_EMAIL in by_email)
         self.failUnless('before' in by_login)
         self.failIf('after' in by_login)
 
@@ -557,18 +603,20 @@ class Test_edit_account_view(_Base, unittest.TestCase):
         from zope.password.password import SSHAPasswordManager
         SUMMARY_ERROR = re.compile('<h3[^>]*>There was a problem', re.MULTILINE)
         FIELD_ERROR = re.compile('<p class="error"', re.MULTILINE)
-        EMAIL = 'phred@example.com'
+        OLD_EMAIL = 'old_phred@example.com'
+        NEW_EMAIL = 'new_phred@example.com'
         ENVIRON = {'repoze.who.identity': {'repoze.who.userid': 'UUID'}}
         pwd_mgr = SSHAPasswordManager()
         encoded = pwd_mgr.encodePassword('old_password')
         by_uuid, by_login, by_email = self._registerConfirmed()
         by_uuid['UUID'] = Dummy(login='before',
-                                email=EMAIL,
+                                email=OLD_EMAIL,
                                 password=encoded,
                                 security_question='borncity',
                                 security_answer='FXBG')
-        by_email[EMAIL] = by_login['before'] = 'UUID'
+        by_email[OLD_EMAIL] = by_login['before'] = 'UUID'
         POST = MultiDict([('login_name', 'after'),
+                          ('email', NEW_EMAIL),
                           ('old_password', 'old_password'),
                           ('__start__', 'password:mapping'),
                           ('value', 'newpassword'),
@@ -587,6 +635,8 @@ class Test_edit_account_view(_Base, unittest.TestCase):
         rendered_form = info['rendered_form']
         self.failUnless(SUMMARY_ERROR.search(rendered_form))
         self.failUnless(FIELD_ERROR.search(rendered_form))
+        self.failUnless(OLD_EMAIL in by_email)
+        self.failIf(NEW_EMAIL in by_email)
         self.failUnless('before' in by_login)
         self.failIf('after' in by_login)
 
@@ -596,20 +646,22 @@ class Test_edit_account_view(_Base, unittest.TestCase):
         from zope.password.password import SSHAPasswordManager
         SUMMARY_ERROR = re.compile('<h3[^>]*>There was a problem', re.MULTILINE)
         FIELD_ERROR = re.compile('<p class="error"', re.MULTILINE)
-        EMAIL = 'phred@example.com'
+        OLD_EMAIL = 'old_phred@example.com'
+        NEW_EMAIL = 'new_phred@example.com'
         ENVIRON = {'repoze.who.identity': {'repoze.who.userid': 'UUID'}}
         pwd_mgr = SSHAPasswordManager()
         encoded = pwd_mgr.encodePassword('old_password')
         by_uuid, by_login, by_email = self._registerConfirmed()
         by_uuid['UUID'] = Dummy(login='before',
-                                email=EMAIL,
+                                email=OLD_EMAIL,
                                 password=encoded,
                                 security_question='borncity',
                                 security_answer='FXBG')
-        by_email[EMAIL] = by_login['before'] = 'UUID'
+        by_email[OLD_EMAIL] = by_login['before'] = 'UUID'
         by_uuid['OTHER_UUID'] = Dummy(login='taken')
         by_login['taken'] = 'OTHER_UUID'
         POST = MultiDict([('login_name', 'taken'),
+                          ('email', NEW_EMAIL),
                           ('old_password', 'old_password'),
                           ('__start__', 'password:mapping'),
                           ('value', 'newpassword'),
@@ -628,6 +680,8 @@ class Test_edit_account_view(_Base, unittest.TestCase):
         rendered_form = info['rendered_form']
         self.failUnless(SUMMARY_ERROR.search(rendered_form))
         self.failUnless(FIELD_ERROR.search(rendered_form))
+        self.failUnless(OLD_EMAIL in by_email)
+        self.failIf(NEW_EMAIL in by_email)
         self.assertEqual(by_login['before'], 'UUID')
         self.assertEqual(by_login['taken'], 'OTHER_UUID')
 
@@ -635,18 +689,20 @@ class Test_edit_account_view(_Base, unittest.TestCase):
         from webob.exc import HTTPFound
         from webob.multidict import MultiDict
         from zope.password.password import SSHAPasswordManager
-        EMAIL = 'phred@example.com'
+        OLD_EMAIL = 'old_phred@example.com'
+        NEW_EMAIL = 'new_phred@example.com'
         ENVIRON = {'repoze.who.identity': {'repoze.who.userid': 'UUID'}}
         pwd_mgr = SSHAPasswordManager()
         encoded = pwd_mgr.encodePassword('old_password')
         by_uuid, by_login, by_email = self._registerConfirmed()
         by_uuid['UUID'] = Dummy(login='before',
-                                email=EMAIL,
+                                email=OLD_EMAIL,
                                 password=encoded,
                                 security_question='borncity',
                                 security_answer='FXBG')
-        by_email[EMAIL] = by_login['before'] = 'UUID'
+        by_email[OLD_EMAIL] = by_login['before'] = 'UUID'
         POST = MultiDict([('login_name', 'after'),
+                          ('email', NEW_EMAIL),
                           ('old_password', 'old_password'),
                           ('__start__', 'password:mapping'),
                           ('value', 'newpassword'),
@@ -673,8 +729,8 @@ class Test_edit_account_view(_Base, unittest.TestCase):
                                               'newpassword'))
         self.assertEqual(new_record.security_question, 'petname')
         self.assertEqual(new_record.security_answer, 'Fido')
-        # TODO:  change email, too
-        self.assertEqual(by_email[EMAIL], 'UUID')
+        self.failIf(OLD_EMAIL in by_email)
+        self.assertEqual(by_email[NEW_EMAIL], 'UUID')
         self.failIf('before' in by_login)
         self.assertEqual(by_login['after'], 'UUID')
 

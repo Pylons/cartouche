@@ -113,6 +113,7 @@ class EditAccount(Schema):
     login_name = SchemaNode(String(),
                             validator=login_name_validator,
                            )
+    email = SchemaNode(String(), validator=Email())
     old_password = SchemaNode(String(),
                               widget=old_password_widget,
                               missing=old_password_missing,
@@ -278,28 +279,6 @@ def confirm_registration_view(context, request):
            }
 
 
-def welcome_view(context, request):
-    identity = request.environ.get('repoze.who.identity')
-    if identity is None:
-        return HTTPFound(location=model_url(context, request,
-                                            'register.html',
-                                            query={'message':
-                                                        REGISTER_FIRST}))
-    userid = identity['repoze.who.userid']
-    confirmed = request.registry.queryAdapter(context, IRegistrations,
-                                              name='confirmed')
-    if confirmed is None:  #pragma NO COVERAGE
-        confirmed = ConfirmedRegistrations(context)
-    account_info = confirmed.get(userid)
-    if account_info is None:
-        return HTTPForbidden()
-    main_template = get_renderer('templates/main.pt')
-    return {'main_template': main_template.implementation(),
-            'authenticated_user': userid,
-            'login': account_info.login,
-            'email': account_info.email,
-           }
-
 
 def edit_account_view(context, request):
     confirmed = request.registry.queryAdapter(context, IRegistrations,
@@ -316,8 +295,8 @@ def edit_account_view(context, request):
     if account_info is None:
         return HTTPForbidden()
 
-    # TODO:  allow editing email
     appstruct = {'login_name': account_info.login,
+                 'email': account_info.email,
                  'security': {'question': account_info.security_question or '',
                               'answer': account_info.security_answer or '',
                              },
@@ -335,8 +314,7 @@ def edit_account_view(context, request):
             rendered_form = e.render()
         else:
             login = appstruct['login_name']
-            #email = appstruct['email'] #XXX
-            email = account_info.email
+            email = appstruct['email']
             pwd_mgr = SSHAPasswordManager()
             password = pwd_mgr.encodePassword(
                                             appstruct['password'])

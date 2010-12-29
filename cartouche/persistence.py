@@ -68,7 +68,7 @@ class _RegistrationsBase(object):
         return cartouche
 
     def _getMapping(self, attr=None):
-        if self.cartouche is None:
+        if self.cartouche is None: #pragma NO COVER
             raise ValueError('Call _getCartouche first!')
         if attr is None:
             attr = self.ATTR
