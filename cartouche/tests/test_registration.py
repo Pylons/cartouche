@@ -475,6 +475,8 @@ class Test_confirm_registration_view(_Base, unittest.TestCase):
                 'confirm': '',
                }
         self._registerAutoLogin()
+        settings = self.config.registry.settings
+        settings['cartouche.after_confirmation_url'] = AFTER
         pending = self._registerPendingRegistrations()
         pending[EMAIL] = Dummy(token='TOKEN')
         by_uuid, by_login, by_email = self._registerConfirmed()
@@ -483,7 +485,6 @@ class Test_confirm_registration_view(_Base, unittest.TestCase):
         context = self._makeContext()
         request = self._makeRequest(POST=POST,
                                     environ={'repoze.who.api': api})
-        request.registry.settings['cartouche.after_confirmation_url'] = AFTER
 
         response = self._callFUT(context, request)
 
@@ -792,6 +793,7 @@ class Test_edit_account_view(_Base, unittest.TestCase):
         OLD_EMAIL = 'old_phred@example.com'
         NEW_EMAIL = 'new_phred@example.com'
         ENVIRON = {'repoze.who.identity': {'repoze.who.userid': 'UUID'}}
+        self.config.registry.settings['cartouche.after_edit_url'] = AFTER
         pwd_mgr = SSHAPasswordManager()
         encoded = pwd_mgr.encodePassword('old_password')
         by_uuid, by_login, by_email = self._registerConfirmed()
@@ -816,7 +818,6 @@ class Test_edit_account_view(_Base, unittest.TestCase):
                          ])
         request = self._makeRequest(POST=POST, environ=ENVIRON,
                                     view_name='edit_account.html')
-        request.registry.settings['cartouche.after_edit_url'] = AFTER
 
         response = self._callFUT(request=request)
 
