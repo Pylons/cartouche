@@ -69,6 +69,8 @@ Login / Logout
 
       ? Display a confirmation dialog and require POST?
 
+      ? Make after-logout URL configurable via Pyramid ``settings``?
+
 
 Account Recovery
 ----------------
