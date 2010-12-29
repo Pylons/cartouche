@@ -13,11 +13,6 @@
 ##############################################################################
 from email.message import Message
 from pkg_resources import resource_filename
-from urllib import urlencode
-from urlparse import parse_qsl
-from urlparse import urljoin
-from urlparse import urlparse
-from urlparse import urlunparse
 from uuid import uuid4
 
 from colander import Email
@@ -35,7 +30,6 @@ from deform.widget import HiddenWidget
 from deform.widget import PasswordWidget
 from deform.widget import SelectWidget
 from pyramid.renderers import get_renderer
-from pyramid.url import model_url
 from repoze.sendmail.interfaces import IMailDelivery
 from repoze.sendmail.delivery import DirectMailDelivery
 from repoze.sendmail.mailer import SMTPMailer
@@ -51,6 +45,7 @@ from cartouche.interfaces import IRegistrations
 from cartouche.interfaces import ITokenGenerator
 from cartouche.persistence import ConfirmedRegistrations
 from cartouche.persistence import PendingRegistrations
+from cartouche._util import _view_url
 
 
 templates_dir = resource_filename('cartouche', 'templates/')
@@ -167,22 +162,6 @@ answer as you used on the initial registration form):
 Once you have entered the token, click the "Confirm" button to
 complete your registration.
 """
-
-def _fixup_url(context, request, base_url, **extra_qs):
-    if base_url.startswith('/'):
-        base_url = urljoin(model_url(context, request), base_url)
-    (sch, netloc, path, parms, qs, frag) = urlparse(base_url)
-    qs_items = parse_qsl(qs) + extra_qs.items()
-    qs = urlencode(qs_items, 1)
-    return urlunparse((sch, netloc, path, parms, qs, frag))
-
-def _view_url(context, request, key, default_name, **extra_qs):
-    configured = request.registry.settings.get('cartouche.%s' % key)
-    if configured is None:
-        if extra_qs:
-            return model_url(context, request, default_name, query=extra_qs)
-        return model_url(context, request, default_name)
-    return _fixup_url(context, request, configured, **extra_qs)
 
 
 def register_view(context, request):
