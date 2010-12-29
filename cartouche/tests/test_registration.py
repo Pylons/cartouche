@@ -150,6 +150,7 @@ class Test_autoLoginViaAuthTkt(_Base, unittest.TestCase):
                          {'repoze.who.plugins.auth_tkt.userid': 'testing'})
         self.assertEqual(api._called_with[1], 'auth_tkt')
 
+
 class Test_register_view(_Base, unittest.TestCase):
 
     def _callFUT(self, context=None, request=None):
