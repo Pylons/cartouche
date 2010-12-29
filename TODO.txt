@@ -75,14 +75,14 @@ Login / Logout
 Account Recovery
 ----------------
 
-- [_] Prompt the user for their e-mail address.
+- [/] Prompt the user for their e-mail address.
 
-      o On POST, send the user an e-mail reminding them of their login name,
+      * On POST, send the user an e-mail reminding them of their login name,
         and redirect to the login view.
 
-      ? Should we tell the user if there is no matching email address?
+      * Make login URL configurable via Pyramid ``settings``.
 
-      o Make login URL configurable via Pyramid ``settings``.
+      ? Should we tell the user if there is no matching email address?
 
 
 Password Reset

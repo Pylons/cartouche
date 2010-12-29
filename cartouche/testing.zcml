@@ -59,6 +59,13 @@
     view=".login.logout_view"
     />
 
+ <view
+    context=".interfaces.IRoot"
+    name="recover_account.html"
+    view=".login.recover_account_view"
+    renderer="templates/login.pt"
+    />
+
   <static
      name="static"
      path="static"

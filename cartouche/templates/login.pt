@@ -3,8 +3,11 @@
   <div tal:content="structure rendered_form">
    FORM GOES HERE
   </div>
-  <p><em>
-    Need to <a href="${recover_account_url}">recover your account login</a>
-    or <a href="${reset_password_url}">reset your password</a>?</em></p>
+   <p tal:condition="recover_account_url|False">
+    <em><a href="${recover_account_url}">Recover your account login</a></em>
+   </p>
+   <p tal:condition="reset_password_url|False">
+    <em><a href="${reset_password_url}">Reset your password</a></em>
+   </p>
  </metal:slot>
 </metal:body>
