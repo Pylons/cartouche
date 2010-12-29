@@ -24,6 +24,7 @@ from pyramid.url import model_url
 from repoze.who.api import get_api
 from webob.exc import HTTPFound
 
+from cartouche._util import _view_url
 
 class Login(Schema):
     login_name = SchemaNode(String())
@@ -53,7 +54,13 @@ def login_view(context, request):
     main_template = get_renderer('templates/main.pt')
     return {'main_template': main_template.implementation(),
             'rendered_form': rendered_form,
-            'message': message
+            'message': message,
+            'recover_account_url': _view_url(context, request,
+                                             'recover_account_url',
+                                             'recover_account.html'),
+            'reset_password_url': _view_url(context, request,
+                                             'reset_password_url',
+                                             'reset_password.html'),
            }
 
 def logout_view(context, request):

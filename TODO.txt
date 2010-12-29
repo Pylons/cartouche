@@ -59,6 +59,10 @@ Login / Logout
 
       * Compare passwords using ``zope.password`` utility.
 
+      * Link to account recovery view.
+
+      * Link to password reset view.
+
       o Handle ``came_from`` URLs properly.
 
 - [X] Implement logout view following the ``repoze.who`` 2.0 docs.
@@ -69,13 +73,38 @@ Login / Logout
 Account Recovery
 ----------------
 
-- [_] TBD
+- [_] Prompt the user for their e-mail address.
+
+      o On POST, send the user an e-mail reminding them of their login name,
+        and redirect to the login view.
+
+      ? Should we tell the user if there is no matching email address?
+
+      o Make login URL configurable via Pyramid ``settings``.
 
 
 Password Reset
 --------------
 
-- [_] TBD
+- [_] Prompt the user for their login name.
+
+      o Hide the 'token' and 'password fields on initial GET.
+
+      o On POST without token, generate and seve a quasi-random token
+        on the user's record.  Render the form showing the token and
+        password fields.
+
+      o Send the user an e-mail containing the token, directing them to
+        cut-and-paste it into the view.
+
+      o Include a link to the view in the e-mail.
+
+      o On POST with mismatched token, display an error.
+
+      o On POST with the matching token, update the user's password. and
+        redirect to the login view.
+
+      o Make login URL configurable via Pyramid ``settings``.
 
 
 User / Group Administration

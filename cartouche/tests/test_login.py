@@ -55,6 +55,32 @@ class LoginTests(_Base, unittest.TestCase):
                         if not x.startswith('_')]
         self.assertEqual(inputs, ['login_name', 'password'])
         self.assertEqual(info['message'], None)
+        self.assertEqual(info['recover_account_url'],
+                         'http://example.com/recover_account.html')
+        self.assertEqual(info['reset_password_url'],
+                         'http://example.com/reset_password.html')
+
+    def test_GET_w_url_overrides(self):
+        import re
+        INPUT = re.compile('<input.*name="(?P<name>\w+)"', re.MULTILINE)
+        mtr = self.config.testing_add_template('templates/main.pt')
+        settings = self.config.registry.settings 
+        settings['cartouche.recover_account_url'] = '/recover.html'
+        settings['cartouche.reset_password_url'] = '/reset.html'
+
+        info = self._callFUT()
+
+        main_template = info['main_template']
+        self.failUnless(main_template is mtr.implementation())
+        rendered_form = info['rendered_form']
+        inputs = [x for x in INPUT.findall(rendered_form)
+                        if not x.startswith('_')]
+        self.assertEqual(inputs, ['login_name', 'password'])
+        self.assertEqual(info['message'], None)
+        self.assertEqual(info['recover_account_url'],
+                         'http://example.com/recover.html')
+        self.assertEqual(info['reset_password_url'],
+                         'http://example.com/reset.html')
 
     def test_GET_w_message(self):
         request = self._makeRequest(GET={'message': 'Foo'})
@@ -116,6 +142,7 @@ class LoginTests(_Base, unittest.TestCase):
         self.assertEqual(response.location, 'http://example.com/')
         for key, value in api.LOGIN_HEADERS:
             self.failUnless(response.headers[key] is value)
+
 
 class LogoutTests(_Base, unittest.TestCase):
 
