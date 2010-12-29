@@ -28,6 +28,8 @@ class _RegistrationsBase(object):
 
     Stores registration info in mapping attributes of the 'cartouche' object.
     """
+    cartouche = None
+
     def __init__(self, context):
         self.context = context
 
@@ -41,7 +43,7 @@ class _RegistrationsBase(object):
         """ See IRegistrations.
         """
         cartouche = self._getCartouche(True)
-        self._getMapping(cartouche)[key] = record
+        self._getMapping()[key] = record
 
     def get(self, key, default=None):
         """ See IRegistrations.
@@ -49,7 +51,7 @@ class _RegistrationsBase(object):
         cartouche = self._getCartouche()
         if cartouche is None:
             return default
-        return self._getMapping(cartouche).get(key, default)
+        return self._getMapping().get(key, default)
 
     def remove(self, key):
         """ See IRegistrations.
@@ -57,19 +59,26 @@ class _RegistrationsBase(object):
         cartouche = self._getCartouche()
         if cartouche is None:
             raise KeyError(key)
-        del self._getMapping(cartouche)[key]
+        del self._getMapping()[key]
 
     def _getCartouche(self, create=False):
+        if self.cartouche is not None:
+            return self.cartouche
         root = find_root(self.context)
         cartouche = getattr(root, 'cartouche', None)
-        if cartouche is None and create:
-            cartouche = root.cartouche = Cartouche()
+        if cartouche is None:
+            if create:
+                cartouche = self.cartouche = root.cartouche = Cartouche()
+        else:
+            self.cartouche = cartouche
         return cartouche
 
-    def _getMapping(self, cartouche, attr=None):
+    def _getMapping(self, attr=None):
+        if self.cartouche is None:
+            raise ValueError('Call _getCartouche first!')
         if attr is None:
             attr = self.ATTR
-        return getattr(cartouche, attr)
+        return getattr(self.cartouche, attr)
 
 
 class PendingRegistrations(_RegistrationsBase):
@@ -116,10 +125,10 @@ class ConfirmedRegistrations(_RegistrationsBase):
     def set_record(self, key, record):
         """ See IRegistrations.
         """
-        cartouche = self._getCartouche(True)
-        self._getMapping(cartouche)[key] = record
-        self._getMapping(cartouche, 'by_login')[record.login] = key
-        self._getMapping(cartouche, 'by_email')[record.email] = key
+        self._getCartouche(True)
+        self._getMapping()[key] = record
+        self._getMapping('by_login')[record.login] = key
+        self._getMapping('by_email')[record.email] = key
 
     def get_by_email(self, email, default=None):
         """ See IRegistrations.
@@ -127,7 +136,7 @@ class ConfirmedRegistrations(_RegistrationsBase):
         cartouche = self._getCartouche()
         if cartouche is None:
             return default
-        uuid = self._getMapping(cartouche, 'by_email').get(email)
+        uuid = self._getMapping('by_email').get(email)
         if uuid is None:
             return default
         return self.get(uuid)
@@ -138,7 +147,7 @@ class ConfirmedRegistrations(_RegistrationsBase):
         cartouche = self._getCartouche()
         if cartouche is None:
             return default
-        uuid = self._getMapping(cartouche, 'by_login').get(login)
+        uuid = self._getMapping('by_login').get(login)
         if uuid is None:
             return default
         return self.get(uuid)
@@ -149,7 +158,7 @@ class ConfirmedRegistrations(_RegistrationsBase):
         cartouche = self._getCartouche()
         if cartouche is None:
             raise KeyError(key)
-        record = self._getMapping(cartouche)[key]
-        del self._getMapping(cartouche)[key]
-        del self._getMapping(cartouche, 'by_login')[record.login]
-        del self._getMapping(cartouche, 'by_email')[record.email]
+        record = self._getMapping()[key]
+        del self._getMapping()[key]
+        del self._getMapping('by_login')[record.login]
+        del self._getMapping('by_email')[record.email]
