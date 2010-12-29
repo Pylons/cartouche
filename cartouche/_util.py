@@ -18,6 +18,11 @@ from urlparse import urlparse
 from urlparse import urlunparse
 
 from pyramid.url import model_url
+from repoze.sendmail.delivery import DirectMailDelivery
+from repoze.sendmail.mailer import SMTPMailer
+
+# By default, deliver e-mail via localhost, port 25.
+_delivery = DirectMailDelivery(SMTPMailer())
 
 def _fixup_url(context, request, base_url, **extra_qs):
     if base_url.startswith('/'):

@@ -31,8 +31,6 @@ from deform.widget import PasswordWidget
 from deform.widget import SelectWidget
 from pyramid.renderers import get_renderer
 from repoze.sendmail.interfaces import IMailDelivery
-from repoze.sendmail.delivery import DirectMailDelivery
-from repoze.sendmail.mailer import SMTPMailer
 from repoze.who.api import get_api
 from webob.exc import HTTPForbidden
 from webob.exc import HTTPFound
@@ -45,6 +43,7 @@ from cartouche.interfaces import IRegistrations
 from cartouche.interfaces import ITokenGenerator
 from cartouche.persistence import ConfirmedRegistrations
 from cartouche.persistence import PendingRegistrations
+from cartouche._util import _delivery
 from cartouche._util import _view_url
 
 
@@ -141,9 +140,6 @@ def autoLoginViaAuthTkt(userid, request):
     return headers
 directlyProvides(autoLoginViaAuthTkt, IAutoLogin)
 
-# By default, deliver e-mail via localhost, port 25.
-_delivery = DirectMailDelivery(SMTPMailer())
-
 
 REGISTRATION_EMAIL = """
 Thank you for registering.  
@@ -154,8 +150,7 @@ into the 'Token' field:
   %(token)s
 
 If you do not still have that page open, you can visit it via
-this URL (you will need to re-enter the same security question and
-answer as you used on the initial registration form):
+this URL:
 
   %(confirmation_url)s
 
@@ -182,7 +177,8 @@ def register_view(context, request):
             pending.set(email, token=token)
 
             from_addr = request.registry.settings['cartouche.from_addr']
-            delivery = request.registry.queryUtility(IMailDelivery) or _delivery
+            delivery = request.registry.queryUtility(IMailDelivery,
+                                                     default=_delivery)
             confirmation_url = _view_url(context, request, 'confirmation_url',
                                          'confirm_registration.html',
                                          email=email)
