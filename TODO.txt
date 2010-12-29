@@ -19,11 +19,13 @@ Registration
         
       * Include a link to the confirm page in the mail.
 
-- [/] When token confirmed, add e-mail-confirmed user to ``ZODB`` user store.
+      * Make confirmation URL configurable via Pyramid ``settings``.
+
+- [Xj When token confirmed, add e-mail-confirmed user to ``ZODB`` user store.
 
       * Auto-login the user using the ``repoze.who`` API.
 
-      o Redirect to the "edit account" page by default (configurable
+      * Redirect to the "edit account" page by default (configurable
         via the Pyramid ``settings``).
 
 
@@ -47,27 +49,33 @@ Update Account Login
 
       * Check for uniqueness of login name.
 
+      * Make the "after edit" URL configurable via Pyramid ``settings``.
+
 
 Login / Logout
 --------------
 
-- [X] Implement login view following the ``repoze.who`` 2.0 docs.
+- [/] Implement login view following the ``repoze.who`` 2.0 docs.
 
       * Compare passwords using ``zope.password`` utility.
 
+      o Handle ``came_from`` URLs properly.
+
 - [X] Implement logout view following the ``repoze.who`` 2.0 docs.
 
+      ? Display a confirmation dialog and require POST?
 
-Password Recovery / Reset
--------------------------
+
+Account Recovery
+----------------
 
 - [_] TBD
 
 
-Profile Editing
----------------
+Password Reset
+--------------
 
-- [_] Use configured "full" registration schema defined using ``deform``.
+- [_] TBD
 
 
 User / Group Administration
