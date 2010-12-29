@@ -239,7 +239,7 @@ def confirm_registration_view(context, request):
             # TODO:  use who API to remember identity.
             auto_login = (request.registry.queryUtility(IAutoLogin)
                             or autoLoginViaAuthTkt)
-            headers = auto_login(email, request)
+            headers = auto_login(uuid, request)
 
             welcome_url = request.registry.settings.get('welcome_url')
             if welcome_url is None:

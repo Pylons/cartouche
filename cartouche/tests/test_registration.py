@@ -374,6 +374,8 @@ class Test_confirm_registration_view(_Base, unittest.TestCase):
         self.assertEqual(by_uuid[uuid].password, None)
         self.assertEqual(by_uuid[uuid].security_question, None)
         self.assertEqual(by_uuid[uuid].security_answer, None)
+        self.assertEqual(api._called_with[0],
+                         {'repoze.who.plugins.auth_tkt.userid': uuid})
 
 
 class Test_welcome_view(_Base, unittest.TestCase):
