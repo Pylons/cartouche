@@ -148,6 +148,9 @@ global ``PasteDeploy`` configuration file:
    cartouche.confirmation_url = /confirm.html
    cartouche.after_confirmation_url = /thank_you_for_registering.html
    cartouche.after_edit_url = /after_account_edit.html
+   cartouche.login_url = /site_login.html
+   cartouche.recover_account_url = /account_recovery.html
+   cartouche.reset_password_url = /password_reset.html
    cartouche.auth_tkt_plugin_id = auth_tkt_id
 
 
@@ -175,6 +178,21 @@ global ``PasteDeploy`` configuration file:
     The URL to which users are redirected after successfully editing
     their accout.  If a relative URL, it will be prepended with
     the Pyramid site root URL.  *Default:  /edit_account.html*
+
+``cartouche.login_url``
+    The URL to which users are redirected after recovering their account
+    or resetting their password.  If a relative URL, it will be prepended with
+    the Pyramid site root URL.  *Default:  /login.html*
+
+``cartouche.recover_account_url``
+    The URL to which users are directed to recovering their account.
+    If a relative URL, it will be prepended with the Pyramid site root URL.
+    *Default:  /recover_account.html*
+
+``cartouche.reset_password_url``
+    The URL to which users are directed to rest their password.
+    If a relative URL, it will be prepended with the Pyramid site root URL.
+    *Default:  /reset_password.html*
 
 ``cartouche.auth_tkt_plugin_id``
     The ID of the ``auth_tkt`` plugin used to auto-login newly-registered
