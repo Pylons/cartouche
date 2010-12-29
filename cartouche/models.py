@@ -35,6 +35,7 @@ class Cartouche(Persistent):
 
     def __init__(self):
         self.pending = OOBTree()
+        self.by_uuid = OOBTree()
         self.by_email = OOBTree()
         self.by_login = OOBTree()
 

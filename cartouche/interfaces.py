@@ -21,8 +21,9 @@ class IRoot(Interface):
 
 class ICartouche(Interface):
     pending = Attribute(u'Pending registrations, keyed by email')
-    by_email = Attribute(u'Registered users, keyed by email')
-    by_login = Attribute(u'Registered users, keyed by login name')
+    by_uuid = Attribute(u'Confirmed registrations, keyed by UUID')
+    by_email = Attribute(u'Index, email -> UUID')
+    by_login = Attribute(u'Index, login name -> UUID')
 
 
 class ITokenGenerator(Interface):
@@ -66,6 +67,18 @@ class IRegistrations(Interface):
 
     def get(key, default=None):
         """ Return info for 'key'.
+
+        Return 'default' if not found
+        """
+
+    def get_by_email(email, default=None):
+        """ Return info for 'email'.
+
+        Return 'default' if not found
+        """
+
+    def get_by_login(login, default=None):
+        """ Return info for 'login'.
 
         Return 'default' if not found
         """
