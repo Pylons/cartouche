@@ -57,23 +57,23 @@ global ``PasteDeploy`` configuration file:
 
 .. code-block:: ini
 
-   [cartouche]
-   from_addr = site-admin@example.com
-   welcome_url = /thank_you_for_registering.html
-   auth_tkt_plugin_id = auth_tkt_id
+   [app:yourapp]
+   cartouche.from_addr = site-admin@example.com
+   cartouche.after_confirmation_url = /thank_you_for_registering.html
+   cartouche.auth_tkt_plugin_id = auth_tkt_id
 
 
-``from_addr``
+``cartouche.from_addr``
     The e-mail address which is the ``From:`` address for e-mails sent
     to users about their site registration / account information. 
     **Required.**
 
-``welcome_url``
+``cartouche.after_confirmation_url``
     The URL to which users are redirected after successfully confirming
     their site registration.  If a relative URL, it will be prepended with
-    the Pyramid site root URL.  *Default:  /welcome.html*
+    the Pyramid site root URL.  *Default:  /edit_account.html*
 
-``auth_tkt_plugin_id``
+``cartouche.auth_tkt_plugin_id``
     The ID of the ``auth_tkt`` plugin used to auto-login newly-registered
     users.  Used only if no utility is registered for the
     ``cartouche.interfaces.IAutoLogin`` interface.

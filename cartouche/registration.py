@@ -13,6 +13,7 @@
 ##############################################################################
 from email.message import Message
 from pkg_resources import resource_filename
+from urlparse import urljoin
 from uuid import uuid4
 
 from colander import Email
@@ -133,7 +134,8 @@ def autoLoginViaAuthTkt(userid, request):
     if api is None:
         raise ValueError("Couldn't find / create repoze.who API object")
     credentials = {'repoze.who.plugins.auth_tkt.userid': userid}
-    plugin_id = request.registry.settings.get('auth_tkt_plugin_id', 'auth_tkt')
+    plugin_id = request.registry.settings.get('cartouche.auth_tkt_plugin_id',
+                                              'auth_tkt')
     identity, headers = api.login(credentials, plugin_id)
     return headers
 
@@ -177,7 +179,7 @@ def register_view(context, request):
             token = getRandomToken(request)
             pending.set(email, token=token)
 
-            from_addr = request.registry.settings['from_addr']
+            from_addr = request.registry.settings['cartouche.from_addr']
             delivery = request.registry.queryUtility(IMailDelivery) or _delivery
             confirmation_url = model_url(context, request,
                                         "confirm_registration.html",
@@ -241,11 +243,17 @@ def confirm_registration_view(context, request):
                             or autoLoginViaAuthTkt)
             headers = auto_login(uuid, request)
 
-            welcome_url = request.registry.settings.get('welcome_url')
-            if welcome_url is None:
-                welcome_url = model_url(context, request,
-                                        'welcome.html')
-            return HTTPFound(location=welcome_url, headers=headers)
+            after_confirmation_url = request.registry.settings.get(
+                                            'cartouche.after_confirmation_url')
+            if after_confirmation_url is None:
+                after_confirmation_url = model_url(context, request,
+                                        'edit_account.html')
+            else:
+                if after_confirmation_url.startswith('/'):
+                    after_confirmation_url = urljoin(
+                                                model_url(context, request),
+                                                after_confirmation_url)
+            return HTTPFound(location=after_confirmation_url, headers=headers)
     else:
         email = request.GET.get('email')
         if email is None:

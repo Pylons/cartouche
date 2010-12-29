@@ -208,7 +208,7 @@ class Test_register_view(_Base, unittest.TestCase):
         POST = {'email': TO_EMAIL,
                 'register': '',
                }
-        self.config.registry.settings['from_addr'] = FROM_EMAIL
+        self.config.registry.settings['cartouche.from_addr'] = FROM_EMAIL
         delivery = DummyMailer()
         self.config.registry.registerUtility(delivery, IMailDelivery)
         self.config.registry.registerUtility(DummyTokenGenerator(),
@@ -342,7 +342,7 @@ class Test_confirm_registration_view(_Base, unittest.TestCase):
                          '?message=Please+copy+the+token+from+your'
                          '+confirmation+e-mail.')
 
-    def test_POST_w_token_hit(self):
+    def test_POST_w_token_hit_no_after_confirmation_url_setting(self):
         from webob.exc import HTTPFound
         EMAIL = 'phred@example.com'
         POST = {'email': EMAIL,
@@ -364,7 +364,7 @@ class Test_confirm_registration_view(_Base, unittest.TestCase):
         for key, value in HEADERS:
             self.assertEqual(response.headers[key], value)
         self.assertEqual(response.location,
-                         'http://example.com/welcome.html')
+                         'http://example.com/edit_account.html')
 
         self.failIf(EMAIL in pending)
         uuid = by_email[EMAIL]
@@ -377,42 +377,30 @@ class Test_confirm_registration_view(_Base, unittest.TestCase):
         self.assertEqual(api._called_with[0],
                          {'repoze.who.plugins.auth_tkt.userid': uuid})
 
-
-class Test_welcome_view(_Base, unittest.TestCase):
-
-    def _callFUT(self, context=None, request=None):
-        from cartouche.registration import welcome_view
-        if context is None:
-            context = self._makeContext()
-        if request is None:
-            request = self._makeRequest()
-        return welcome_view(context, request)
-
-    def test_GET_wo_credentials(self):
+    def test_POST_w_token_hit_w_after_confirmation_url_setting(self):
         from webob.exc import HTTPFound
-        response = self._callFUT()
+        EMAIL = 'phred@example.com'
+        AFTER = '/after.html'
+        POST = {'email': EMAIL,
+                'token': 'TOKEN',
+                'confirm': '',
+               }
+        pending = self._registerPendingRegistrations()
+        pending[EMAIL] = Dummy(token='TOKEN')
+        by_uuid, by_login, by_email = self._registerConfirmed()
+        HEADERS = [('Faux-Cookie', 'gingersnap')]
+        api = FauxAPI(HEADERS)
+        context = self._makeContext()
+        request = self._makeRequest(POST=POST,
+                                    environ={'repoze.who.api': api})
+        request.registry.settings['cartouche.after_confirmation_url'] = AFTER
+
+        response = self._callFUT(context, request)
 
         self.failUnless(isinstance(response, HTTPFound))
-        self.assertEqual(response.location,
-                         'http://example.com/register.html?message='
-                         'Please+register+first.')
-
-    def test_GET_w_credentials(self):
-        EMAIL = 'phred@example.com'
-        ENVIRON = {'repoze.who.identity': {'repoze.who.userid': 'UUID'}}
-        by_uuid, by_login, by_email = self._registerConfirmed()
-        by_uuid['UUID'] = Dummy(login=EMAIL, email=EMAIL, password=None,
-                                security_question=None, security_answer=None)
-        by_email[EMAIL] = by_login[EMAIL] = 'UUID'
-        mtr = self.config.testing_add_template('templates/main.pt')
-        request = self._makeRequest(environ=ENVIRON)
-
-        info = self._callFUT(request=request)
-
-        self.failUnless(info['main_template'] is mtr.implementation())
-        self.assertEqual(info['authenticated_user'], 'UUID')
-        self.assertEqual(info['login'], EMAIL)
-        self.assertEqual(info['email'], EMAIL)
+        for key, value in HEADERS:
+            self.assertEqual(response.headers[key], value)
+        self.assertEqual(response.location, 'http://example.com/after.html')
 
 
 class Test_edit_account_view(_Base, unittest.TestCase):
