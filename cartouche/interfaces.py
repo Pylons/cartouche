@@ -46,6 +46,7 @@ class IPendingRegistrationInfo(Interface):
 
 
 class IRegistrationInfo(Interface):
+    uuid = Attribute(u'Opaque identifier')
     email = Attribute(u'Registered e-mail address')
     password = Attribute(u'Hashed password')
     security_question = Attribute(u'Security question')

@@ -51,8 +51,9 @@ class PendingRegistrationInfo(Persistent):
 class RegistrationInfo(Persistent):
     implements(IRegistrationInfo)
 
-    def __init__(self, email, login, password,
+    def __init__(self, uuid, email, login, password,
                  security_question, security_answer):
+        self.uuid = uuid
         self.email = email
         self.login = login
         self.password = password

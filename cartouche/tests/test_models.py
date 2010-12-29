@@ -91,13 +91,14 @@ class RegistrationInfoTests(unittest.TestCase):
         return RegistrationInfo
 
     def _makeOne(self,
+                 uuid='UUID',
                  email='phred@example.com',
                  login='login',
                  password='password',
                  security_question='question',
                  security_answer='answer',
                 ):
-        return self._getTargetClass()(email, login, password,   
+        return self._getTargetClass()(uuid, email, login, password,   
                                       security_question, security_answer)
 
     def test_class_conforms_to_IRegistrationInfo(self):
