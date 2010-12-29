@@ -61,43 +61,45 @@ class _Base(object):
                                              name='pending')
         return pending
 
-    def _registerByLogin(self):
+    def _registerConfirmed(self):
         from cartouche.interfaces import IRegistrations
+        by_uuid = {}
         by_login = {}
-        class DummyRegistrationsByLogin:
-            def __init__(self, context):
-                pass
-            def get(self, key, default=None):
-                return by_login.get(key, default)
-            def set(self, key, **kw):
-                by_login[key] = Dummy(login=key, **kw)
-            def set_record(self, key, record):
-                by_login[key] = record
-            def remove(self, key):
-                del by_login[key]
-        self.config.registry.registerAdapter(DummyRegistrationsByLogin,
-                                             (None,), IRegistrations,
-                                             name='by_login')
-        return by_login
-
-    def _registerByEmail(self):
-        from cartouche.interfaces import IRegistrations
         by_email = {}
-        class DummyPendingRegistrations:
+        class DummyConfirmed:
             def __init__(self, context):
                 pass
             def get(self, key, default=None):
-                return by_email.get(key, default)
+                return by_uuid.get(key, default)
+            def get_by_login(self, login, default=None):
+                uuid = by_login.get(login)
+                if uuid is None:
+                    return default
+                return by_uuid.get(uuid, default)
+            def get_by_email(self, email, default=None):
+                uuid = by_email.get(email)
+                if uuid is None:
+                    return default
+                return by_uuid.get(uuid, default)
             def set(self, key, **kw):
-                by_email[key] = Dummy(email=key, **kw)
+                self.set_record(key, Dummy(**kw))
             def set_record(self, key, record):
-                by_email[key] = record
+                old_record = by_uuid.get(key)
+                if old_record is not None:
+                    del by_login[old_record.login]
+                    del by_email[old_record.email]
+                by_uuid[key] = record
+                by_login[record.login] = key
+                by_email[record.email] = key
             def remove(self, key):
-                del by_email[key]
-        self.config.registry.registerAdapter(DummyPendingRegistrations,
+                info = by_uuid[key]
+                del by_uuid[key]
+                del by_login[info.login]
+                del by_email[info.email]
+        self.config.registry.registerAdapter(DummyConfirmed,
                                              (None,), IRegistrations,
-                                             name='by_email')
-        return by_email
+                                             name='confirmed')
+        return by_uuid, by_login, by_email
 
 
 class Test_getRandomToken(_Base, unittest.TestCase):
@@ -350,8 +352,7 @@ class Test_confirm_registration_view(_Base, unittest.TestCase):
                }
         pending = self._registerPendingRegistrations()
         pending[EMAIL] = Dummy(token='TOKEN')
-        by_login = self._registerByLogin()
-        by_email = self._registerByEmail()
+        by_uuid, by_login, by_email = self._registerConfirmed()
         HEADERS = [('Faux-Cookie', 'gingersnap')]
         api = FauxAPI(HEADERS)
         context = self._makeContext()
@@ -367,12 +368,13 @@ class Test_confirm_registration_view(_Base, unittest.TestCase):
                          'http://example.com/welcome.html')
 
         self.failIf(EMAIL in pending)
-        self.failUnless(EMAIL in by_login)
-        self.failUnless(EMAIL in by_email)
-        self.failUnless(by_login[EMAIL] is by_email[EMAIL])
-        self.assertEqual(by_login[EMAIL].password, None)
-        self.assertEqual(by_login[EMAIL].security_question, None)
-        self.assertEqual(by_login[EMAIL].security_answer, None)
+        uuid = by_email[EMAIL]
+        self.assertEqual(by_login[EMAIL], uuid)
+        self.assertEqual(by_uuid[uuid].email, EMAIL)
+        self.assertEqual(by_uuid[uuid].login, EMAIL)
+        self.assertEqual(by_uuid[uuid].password, None)
+        self.assertEqual(by_uuid[uuid].security_question, None)
+        self.assertEqual(by_uuid[uuid].security_answer, None)
 
 
 class Test_welcome_view(_Base, unittest.TestCase):
@@ -396,17 +398,20 @@ class Test_welcome_view(_Base, unittest.TestCase):
 
     def test_GET_w_credentials(self):
         EMAIL = 'phred@example.com'
-        ENVIRON = {'repoze.who.identity': {'repoze.who.userid': EMAIL}}
-        by_login = self._registerByLogin()
-        by_login[EMAIL] = Dummy(login=EMAIL, email=EMAIL, password=None,
+        ENVIRON = {'repoze.who.identity': {'repoze.who.userid': 'UUID'}}
+        by_uuid, by_login, by_email = self._registerConfirmed()
+        by_uuid['UUID'] = Dummy(login=EMAIL, email=EMAIL, password=None,
                                 security_question=None, security_answer=None)
+        by_email[EMAIL] = by_login[EMAIL] = 'UUID'
         mtr = self.config.testing_add_template('templates/main.pt')
         request = self._makeRequest(environ=ENVIRON)
 
         info = self._callFUT(request=request)
 
         self.failUnless(info['main_template'] is mtr.implementation())
-        self.assertEqual(info['authenticated_user'], EMAIL)
+        self.assertEqual(info['authenticated_user'], 'UUID')
+        self.assertEqual(info['login'], EMAIL)
+        self.assertEqual(info['email'], EMAIL)
 
 
 class Test_edit_account_view(_Base, unittest.TestCase):
@@ -428,7 +433,7 @@ class Test_edit_account_view(_Base, unittest.TestCase):
         from webob.exc import HTTPForbidden
         EMAIL = 'phred@example.com'
         ENVIRON = {'repoze.who.identity': {'repoze.who.userid': EMAIL}}
-        by_email = self._registerByEmail()
+        by_uuid, by_login, by_email = self._registerConfirmed()
         request = self._makeRequest(environ=ENVIRON)
 
         response = self._callFUT(request=request)
@@ -444,10 +449,15 @@ class Test_edit_account_view(_Base, unittest.TestCase):
         OPTIONS_SEL = re.compile('<option.*? value="(?P<value>\w+)" '
                                  'selected="(?P<selected>\w*)" ', re.MULTILINE)
         EMAIL = 'phred@example.com'
-        ENVIRON = {'repoze.who.identity': {'repoze.who.userid': EMAIL}}
-        by_email = self._registerByEmail()
-        by_email[EMAIL] = Dummy(login=EMAIL, email=EMAIL, password=None,
-                                security_question=None, security_answer=None)
+        ENVIRON = {'repoze.who.identity': {'repoze.who.userid': 'UUID'}}
+        by_uuid, by_login, by_email = self._registerConfirmed()
+        by_uuid['UUID'] = Dummy(login=EMAIL,
+                                email=EMAIL,
+                                password=None,
+                                security_question=None,
+                                security_answer=None,
+                               )
+        by_email[EMAIL] = by_login[EMAIL] = 'UUID'
         mtr = self.config.testing_add_template('templates/main.pt')
         request = self._makeRequest(environ=ENVIRON)
 
@@ -480,15 +490,17 @@ class Test_edit_account_view(_Base, unittest.TestCase):
         OPTIONS_SEL = re.compile('<option.*? value="(?P<value>[^"]+)" '
                                  'selected="(?P<selected>\w+)"', re.MULTILINE)
         EMAIL = 'phred@example.com'
-        ENVIRON = {'repoze.who.identity': {'repoze.who.userid': EMAIL}}
+        ENVIRON = {'repoze.who.identity': {'repoze.who.userid': 'UUID'}}
         pwd_mgr = SSHAPasswordManager()
         encoded = pwd_mgr.encodePassword('old_password')
-        by_email = self._registerByEmail()
-        by_email[EMAIL] = Dummy(login='login',
+        by_uuid, by_login, by_email = self._registerConfirmed()
+        by_uuid['UUID'] = Dummy(login='login',
+                                email=EMAIL,
                                 password=encoded,
                                 security_question='borncity',
                                 security_answer='FXBG',
                                )
+        by_email[EMAIL] = by_login[EMAIL] = 'UUID'
         mtr = self.config.testing_add_template('templates/main.pt')
         request = self._makeRequest(environ=ENVIRON)
 
@@ -518,17 +530,16 @@ class Test_edit_account_view(_Base, unittest.TestCase):
         SUMMARY_ERROR = re.compile('<h3[^>]*>There was a problem', re.MULTILINE)
         FIELD_ERROR = re.compile('<p class="error"', re.MULTILINE)
         EMAIL = 'phred@example.com'
-        ENVIRON = {'repoze.who.identity': {'repoze.who.userid': EMAIL}}
+        ENVIRON = {'repoze.who.identity': {'repoze.who.userid': 'UUID'}}
         pwd_mgr = SSHAPasswordManager()
         encoded = pwd_mgr.encodePassword('old_password')
-        by_email = self._registerByEmail()
-        by_email[EMAIL] = record = Dummy(login='before',
-                                         email=EMAIL,
-                                         password=encoded,
-                                         security_question='borncity',
-                                         security_answer='FXBG')
-        by_login = self._registerByLogin()
-        by_login['before'] = record
+        by_uuid, by_login, by_email = self._registerConfirmed()
+        by_uuid['UUID'] = Dummy(login='before',
+                                email=EMAIL,
+                                password=encoded,
+                                security_question='borncity',
+                                security_answer='FXBG')
+        by_email[EMAIL] = by_login['before'] = 'UUID'
         POST = MultiDict([('login_name', 'after'),
                           ('old_password', 'bogus'),
                           ('__start__', 'password:mapping'),
@@ -558,17 +569,16 @@ class Test_edit_account_view(_Base, unittest.TestCase):
         SUMMARY_ERROR = re.compile('<h3[^>]*>There was a problem', re.MULTILINE)
         FIELD_ERROR = re.compile('<p class="error"', re.MULTILINE)
         EMAIL = 'phred@example.com'
-        ENVIRON = {'repoze.who.identity': {'repoze.who.userid': EMAIL}}
+        ENVIRON = {'repoze.who.identity': {'repoze.who.userid': 'UUID'}}
         pwd_mgr = SSHAPasswordManager()
         encoded = pwd_mgr.encodePassword('old_password')
-        by_email = self._registerByEmail()
-        by_email[EMAIL] = record = Dummy(login='before',
-                                         email=EMAIL,
-                                         password=encoded,
-                                         security_question='borncity',
-                                         security_answer='FXBG')
-        by_login = self._registerByLogin()
-        by_login['before'] = record
+        by_uuid, by_login, by_email = self._registerConfirmed()
+        by_uuid['UUID'] = Dummy(login='before',
+                                email=EMAIL,
+                                password=encoded,
+                                security_question='borncity',
+                                security_answer='FXBG')
+        by_email[EMAIL] = by_login['before'] = 'UUID'
         POST = MultiDict([('login_name', 'after'),
                           ('old_password', 'old_password'),
                           ('__start__', 'password:mapping'),
@@ -598,21 +608,18 @@ class Test_edit_account_view(_Base, unittest.TestCase):
         SUMMARY_ERROR = re.compile('<h3[^>]*>There was a problem', re.MULTILINE)
         FIELD_ERROR = re.compile('<p class="error"', re.MULTILINE)
         EMAIL = 'phred@example.com'
-        ENVIRON = {'repoze.who.identity': {'repoze.who.userid': EMAIL}}
+        ENVIRON = {'repoze.who.identity': {'repoze.who.userid': 'UUID'}}
         pwd_mgr = SSHAPasswordManager()
         encoded = pwd_mgr.encodePassword('old_password')
-        by_email = self._registerByEmail()
-        by_email[EMAIL] = record = Dummy(login='before',
-                                         email=EMAIL,
-                                         password=encoded,
-                                         security_question='borncity',
-                                         security_answer='FXBG')
-        by_login = self._registerByLogin()
-        by_login['before'] = record
-        other_user = Dummy(login='taken',
-                           email='taken@example.com',
-                          )
-        by_login['taken'] = other_user
+        by_uuid, by_login, by_email = self._registerConfirmed()
+        by_uuid['UUID'] = Dummy(login='before',
+                                email=EMAIL,
+                                password=encoded,
+                                security_question='borncity',
+                                security_answer='FXBG')
+        by_email[EMAIL] = by_login['before'] = 'UUID'
+        by_uuid['OTHER_UUID'] = Dummy(login='taken')
+        by_login['taken'] = 'OTHER_UUID'
         POST = MultiDict([('login_name', 'taken'),
                           ('old_password', 'old_password'),
                           ('__start__', 'password:mapping'),
@@ -632,25 +639,24 @@ class Test_edit_account_view(_Base, unittest.TestCase):
         rendered_form = info['rendered_form']
         self.failUnless(SUMMARY_ERROR.search(rendered_form))
         self.failUnless(FIELD_ERROR.search(rendered_form))
-        self.failUnless(by_login['before'] is record)
-        self.failUnless(by_login['taken'] is other_user)
+        self.assertEqual(by_login['before'], 'UUID')
+        self.assertEqual(by_login['taken'], 'OTHER_UUID')
 
     def test_POST_w_password_match(self):
         from webob.exc import HTTPFound
         from webob.multidict import MultiDict
         from zope.password.password import SSHAPasswordManager
         EMAIL = 'phred@example.com'
-        ENVIRON = {'repoze.who.identity': {'repoze.who.userid': EMAIL}}
+        ENVIRON = {'repoze.who.identity': {'repoze.who.userid': 'UUID'}}
         pwd_mgr = SSHAPasswordManager()
         encoded = pwd_mgr.encodePassword('old_password')
-        by_email = self._registerByEmail()
-        by_email[EMAIL] = record = Dummy(login='before',
-                                         email=EMAIL,
-                                         password=encoded,
-                                         security_question='borncity',
-                                         security_answer='FXBG')
-        by_login = self._registerByLogin()
-        by_login['before'] = record
+        by_uuid, by_login, by_email = self._registerConfirmed()
+        by_uuid['UUID'] = Dummy(login='before',
+                                email=EMAIL,
+                                password=encoded,
+                                security_question='borncity',
+                                security_answer='FXBG')
+        by_email[EMAIL] = by_login['before'] = 'UUID'
         POST = MultiDict([('login_name', 'after'),
                           ('old_password', 'old_password'),
                           ('__start__', 'password:mapping'),
@@ -672,15 +678,16 @@ class Test_edit_account_view(_Base, unittest.TestCase):
         self.assertEqual(response.location,
                          'http://example.com/edit_account.html')
 
-        new_record = by_email[EMAIL]
+        new_record = by_uuid['UUID']
         self.assertEqual(new_record.login, 'after')
         self.failUnless(pwd_mgr.checkPassword(new_record.password,
                                               'newpassword'))
         self.assertEqual(new_record.security_question, 'petname')
         self.assertEqual(new_record.security_answer, 'Fido')
-        self.failUnless(by_email[EMAIL] is by_login['after'])
+        # TODO:  change email, too
+        self.assertEqual(by_email[EMAIL], 'UUID')
         self.failIf('before' in by_login)
-        self.failUnless(by_login['after'] is record)
+        self.assertEqual(by_login['after'], 'UUID')
 
 
 class Dummy:

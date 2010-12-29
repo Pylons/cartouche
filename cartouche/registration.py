@@ -43,8 +43,7 @@ from zope.password.password import SSHAPasswordManager
 from cartouche.interfaces import IAutoLogin
 from cartouche.interfaces import IRegistrations
 from cartouche.interfaces import ITokenGenerator
-from cartouche.persistence import ByEmailRegistrations
-from cartouche.persistence import ByLoginRegistrations
+from cartouche.persistence import ConfirmedRegistrations
 from cartouche.persistence import PendingRegistrations
 
 
@@ -79,11 +78,11 @@ class SecurityQuestion(Schema):
 @deferred
 def login_name_validator(node, kw):
     current_login_name = kw.get('current_login_name')
-    by_login = kw.get('by_login')
-    if current_login_name is not None and by_login is not None:
+    confirmed = kw.get('confirmed')
+    if current_login_name is not None and confirmed is not None:
         def _check(node, value):
             if value != current_login_name:
-                if by_login.get(value, None) is not None:
+                if confirmed.get_by_login(value, None) is not None:
                     raise Invalid('Login name not available')
         return _check
 
@@ -228,19 +227,15 @@ def confirm_registration_view(context, request):
                                                 'confirm_registration.html',
                                                 query={'message':
                                                         CHECK_TOKEN}))
-            by_email = request.registry.queryAdapter(context, IRegistrations,
-                                                     name='by_email')
-            if by_email is None:  #pragma NO COVERAGE
-                by_email = ByEmailRegistrations(context)
-            by_login = request.registry.queryAdapter(context, IRegistrations,
-                                                     name='by_login')
-            if by_login is None:  #pragma NO COVERAGE
-                by_email = ByLoginRegistrations(context)
+            confirmed = request.registry.queryAdapter(context, IRegistrations,
+                                                      name='confirmed')
+            if confirmed is None:  #pragma NO COVERAGE
+                confirmed = ConfirmedRegistrations(context)
             pending.remove(email)
-            by_email.set(email, login=email, password=None,
-                         security_question=None, security_answer=None)
-            info = by_email.get(email)
-            by_login.set_record(email, info)
+            uuid = getRandomToken(request)
+            confirmed.set(uuid, email=email, login=email, password=None,
+                          security_question=None, security_answer=None)
+            info = confirmed.get(uuid)
             # TODO:  use who API to remember identity.
             auto_login = (request.registry.queryUtility(IAutoLogin)
                             or autoLoginViaAuthTkt)
@@ -278,39 +273,45 @@ def welcome_view(context, request):
                                             'register.html',
                                             query={'message':
                                                         REGISTER_FIRST}))
+    userid = identity['repoze.who.userid']
+    confirmed = request.registry.queryAdapter(context, IRegistrations,
+                                              name='confirmed')
+    if confirmed is None:  #pragma NO COVERAGE
+        confirmed = ConfirmedRegistrations(context)
+    account_info = confirmed.get(userid)
+    if account_info is None:
+        return HTTPForbidden()
     main_template = get_renderer('templates/main.pt')
     return {'main_template': main_template.implementation(),
-            'authenticated_user': identity['repoze.who.userid'],
+            'authenticated_user': userid,
+            'login': account_info.login,
+            'email': account_info.email,
            }
 
 
 def edit_account_view(context, request):
-    by_email = request.registry.queryAdapter(context, IRegistrations,
-                                             name='by_email')
-    if by_email is None:  #pragma NO COVERAGE
-        by_email = ByEmailRegistrations(context)
-
-    by_login = request.registry.queryAdapter(context, IRegistrations,
-                                            name='by_login')
-    if by_login is None:  #pragma NO COVERAGE
-        by_login = ByLoginRegistrations(context)
+    confirmed = request.registry.queryAdapter(context, IRegistrations,
+                                              name='confirmed')
+    if confirmed is None:  #pragma NO COVERAGE
+        confirmed = ConfirmedRegistrations(context)
 
     identity = request.environ.get('repoze.who.identity')
     if identity is None:
         return HTTPUnauthorized()
 
     userid = identity['repoze.who.userid']
-    account_info = by_email.get(userid)
+    account_info = confirmed.get(userid)
     if account_info is None:
         return HTTPForbidden()
 
+    # TODO:  allow editing email
     appstruct = {'login_name': account_info.login,
                  'security': {'question': account_info.security_question or '',
                               'answer': account_info.security_answer or '',
                              },
                 }
     schema = EditAccount().bind(current_login_name=account_info.login,
-                                by_login=by_login,
+                                confirmed=confirmed,
                                 old_password=account_info.password)
     form = Form(schema, buttons=('update',))
     rendered_form = form.render(appstruct)
@@ -321,16 +322,21 @@ def edit_account_view(context, request):
         except ValidationFailure, e:
             rendered_form = e.render()
         else:
-            old_login = account_info.login
-            by_login.remove(old_login)
-            new_login = account_info.login = appstruct['login_name']
+            login = appstruct['login_name']
+            #email = appstruct['email'] #XXX
+            email = account_info.email
             pwd_mgr = SSHAPasswordManager()
-            account_info.password = pwd_mgr.encodePassword(
+            password = pwd_mgr.encodePassword(
                                             appstruct['password'])
-            account_info.security_question = appstruct['security']['question']
-            account_info.security_answer = appstruct['security']['answer']
-            by_email.set_record(userid, account_info)
-            by_login.set_record(new_login, account_info)
+            security_question = appstruct['security']['question']
+            security_answer = appstruct['security']['answer']
+            confirmed.set(userid,
+                          email=email,
+                          login=login, 
+                          password=password,
+                          security_question=security_question,
+                          security_answer=security_answer,
+                         )
             return HTTPFound(location=model_url(context, request,
                                                 request.view_name))
 
