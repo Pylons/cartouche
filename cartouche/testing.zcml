@@ -6,6 +6,9 @@
  <utility provides="repoze.sendmail.interfaces.IMailDelivery"
           factory=".testing.FauxMailDelivery" />
 
+ <utility provides="cartouche.interfaces.IAutoLogin"
+          component="cartouche.registration.autoLoginViaAuthTkt" />
+
  <adapter provides="cartouche.interfaces.IRegistrations"
           name="pending"
           for="*"

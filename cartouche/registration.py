@@ -39,6 +39,7 @@ from repoze.who.api import get_api
 from webob.exc import HTTPForbidden
 from webob.exc import HTTPFound
 from webob.exc import HTTPUnauthorized
+from zope.interface import directlyProvides
 from zope.password.password import SSHAPasswordManager
 
 from cartouche.interfaces import IAutoLogin
@@ -138,6 +139,7 @@ def autoLoginViaAuthTkt(userid, request):
                                               'auth_tkt')
     identity, headers = api.login(credentials, plugin_id)
     return headers
+directlyProvides(autoLoginViaAuthTkt, IAutoLogin)
 
 # By default, deliver e-mail via localhost, port 25.
 _delivery = DirectMailDelivery(SMTPMailer())
@@ -238,10 +240,12 @@ def confirm_registration_view(context, request):
             confirmed.set(uuid, email=email, login=email, password=None,
                           security_question=None, security_answer=None)
             info = confirmed.get(uuid)
-            # TODO:  use who API to remember identity.
-            auto_login = (request.registry.queryUtility(IAutoLogin)
-                            or autoLoginViaAuthTkt)
-            headers = auto_login(uuid, request)
+
+            auto_login = request.registry.queryUtility(IAutoLogin)
+            if auto_login is not None:
+                headers = auto_login(uuid, request)
+            else:
+                headers = ()
 
             after_confirmation_url = request.registry.settings.get(
                                             'cartouche.after_confirmation_url')
