@@ -12,14 +12,9 @@
           factory=".testing.FauxPendingRegistrations" />
 
  <adapter provides="cartouche.interfaces.IRegistrations"
-          name="by_email"
+          name="confirmed"
           for="*"
-          factory=".testing.FauxByEmailRegistrations" />
-
- <adapter provides="cartouche.interfaces.IRegistrations"
-          name="by_login"
-          for="*"
-          factory=".testing.FauxByLoginRegistrations" />
+          factory=".testing.FauxConfirmedRegistrations" />
 
  <view
     context=".models.Root"

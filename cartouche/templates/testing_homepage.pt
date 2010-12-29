@@ -4,7 +4,7 @@
    <h1>cartouche test site</h1>
 
    <div tal:condition="authenticated_user">
-    <p>You are logged in as <em title="${authenticated_user}">${login_name}</em>.</p>
+    <p>You are logged in as <em title="${email}">${login_name}</em>.</p>
 
     <ul>
      <li>
@@ -17,6 +17,8 @@
       <a href="/logout.html"
       >Log out</a></li>
     </ul>
+
+    <code>${authenticated_user}</code>
    </div>
 
    <div tal:condition="authenticated_user is None">

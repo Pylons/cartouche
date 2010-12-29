@@ -34,26 +34,55 @@ def _factory(_make_info):
             pass
 
         def set(self, key, **kw):
+            try:
+                self.remove(key)
+            except KeyError:
+                pass
             print DIVIDER
             print 'Setting registration for key: %s' % key
-            print DIVIDER
             info = _make_info(key, kw)
             self._store[key] = info
-
-        def set_record(self, key, record):
+            login = kw.get('login')
+            if login is not None:
+                print '-' * 80
+                print 'login:', login
+                self._store[login] = key
+            email = kw.get('email')
+            if email is not None:
+                print '-' * 80
+                print 'email:', email
+                self._store[email] = key
             print DIVIDER
-            print 'Adding copied registration for key: %s' % key
-            print DIVIDER
-            self._store[key] = record
 
         def get(self, key, default=None):
             return self._store.get(key, default)
 
+        def get_by_login(self, login, default=None):
+            key = self._store.get(login)
+            if key is None:
+                return default
+            return self._store.get(key, default)
+
+        def get_by_email(self, email, default=None):
+            key = self._store.get(email)
+            if key is None:
+                return default
+            return self._store.get(key, default)
+
         def remove(self, key, default=None):
-            print DIVIDER
-            print 'Removing registration for key: %s' % key
-            print DIVIDER
-            del self._store[key]
+            old_info = self._store.get(key)
+            if old_info is not None:
+                print DIVIDER
+                print 'Removing registration for key: %s' % key
+                print DIVIDER
+                del self._store[key]
+                login = getattr(old_info, 'login', None)
+                if login is not None and login in self._store:
+                    del self._store[login]
+                email = getattr(old_info, 'email', None)
+                if email is not None and email in self._store:
+                    del self._store[email]
+
     return FauxRegistrations
 
 
@@ -63,12 +92,17 @@ def _make_pending(key, kw):
 
 
 def _make_confirmed(key, kw):
-    return Dummy(email=key, login=key,
-                 password=None, security_question=None, security_answer=None)
+    email = kw.get('email')
+    login = kw.get('login', email)
+    password = kw.get('password')
+    question = kw.get('security_question')
+    answer = kw.get('security_answer')
+    return Dummy(uuid=key, email=email, login=login, password=password,
+                 security_question=question, security_answer=question)
 
 
 FauxPendingRegistrations = _factory(_make_pending)
-FauxByEmailRegistrations = _factory(_make_confirmed)
+FauxConfirmedRegistrations = _factory(_make_confirmed)
 FauxByLoginRegistrations = _factory(_make_confirmed)
 
 
@@ -80,28 +114,27 @@ class FauxAuthentication(object):
         except KeyError:
             return None
         pwd_mgr = SSHAPasswordManager()
-        record = FauxByLoginRegistrations(None).get(login)
-        if pwd_mgr.checkPassword(record.password, password):
-            return record.email
+        record = FauxConfirmedRegistrations(None).get_by_login(login)
+        if (record is not None and
+            pwd_mgr.checkPassword(record.password, password)):
+            return record.uuid
 
 
 def homepage_view(context, request):
-    by_email = request.registry.queryAdapter(context, IRegistrations,
-                                                name='by_email')
-    if by_email is None:  #pragma NO COVERAGE
-        by_email = FauxByEmailRegistrations(context)
+    confirmed = FauxConfirmedRegistrations(context)
     identity = request.environ.get('repoze.who.identity')
-    if identity is None:
-        authenticated_user = login_name = None
-    else:
+    authenticated_user = login_name = email = None
+    if identity is not None:
         authenticated_user = identity['repoze.who.userid']
-        account_info = by_email.get(authenticated_user) 
+        account_info = confirmed.get(authenticated_user) 
         if account_info is None:
-            authenticated_user = login_name = None
+            authenticated_user = login_name = email = None
         else:
             login_name = account_info.login
+            email = account_info.email
     main_template = get_renderer('templates/main.pt')
     return {'main_template': main_template.implementation(),
             'authenticated_user': authenticated_user,
             'login_name': login_name,
+            'email': email,
            }

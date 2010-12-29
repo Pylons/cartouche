@@ -3,7 +3,7 @@
 
    <h1>Welcome to the site!</h1>
 
-   <p> You are registered with login ID, <em>${authenticated_user}</em>.
+   <p> You are registered with login ID, <em title="${email}">${login}</em>.
        Please take a moment to set up your account: </p>
 
    <ul>
@@ -14,6 +14,8 @@
      <a href="/edit_profile.html"
      >Update your profile</a></li>
    </ul>
+
+   <code>${authenticated_user}</code>
 
  </metal:slot>
 </metal:body>
