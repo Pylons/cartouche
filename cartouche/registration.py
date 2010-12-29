@@ -13,7 +13,11 @@
 ##############################################################################
 from email.message import Message
 from pkg_resources import resource_filename
+from urllib import urlencode
+from urlparse import parse_qsl
 from urlparse import urljoin
+from urlparse import urlparse
+from urlparse import urlunparse
 from uuid import uuid4
 
 from colander import Email
@@ -164,6 +168,22 @@ Once you have entered the token, click the "Confirm" button to
 complete your registration.
 """
 
+def _fixup_url(context, request, base_url, **extra_qs):
+    if base_url.startswith('/'):
+        base_url = urljoin(model_url(context, request), base_url)
+    (sch, netloc, path, parms, qs, frag) = urlparse(base_url)
+    qs_items = parse_qsl(qs) + extra_qs.items()
+    qs = urlencode(qs_items, 1)
+    return urlunparse((sch, netloc, path, parms, qs, frag))
+
+def _view_url(context, request, key, default_name, **extra_qs):
+    configured = request.registry.settings.get('cartouche.%s' % key)
+    if configured is None:
+        if extra_qs:
+            return model_url(context, request, default_name, query=extra_qs)
+        return model_url(context, request, default_name)
+    return _fixup_url(context, request, configured, **extra_qs)
+
 
 def register_view(context, request):
     form = Form(Signup(), buttons=('register',))
@@ -184,11 +204,11 @@ def register_view(context, request):
 
             from_addr = request.registry.settings['cartouche.from_addr']
             delivery = request.registry.queryUtility(IMailDelivery) or _delivery
-            confirmation_url = model_url(context, request,
-                                        "confirm_registration.html",
-                                        query=dict(email=email))
+            confirmation_url = _view_url(context, request, 'confirmation_url',
+                                         'confirm_registration.html',
+                                         email=email)
             body = REGISTRATION_EMAIL % {'token': token,
-                                        'confirmation_url': confirmation_url}
+                                         'confirmation_url': confirmation_url}
             message = Message()
             message.set_payload(body)
             delivery.send(from_addr, [email], message)
@@ -223,15 +243,20 @@ def confirm_registration_view(context, request):
             token = appstruct['token']
             info = pending.get(email)
             if info is None:
-                return HTTPFound(location=model_url(context, request,
-                                                    'register.html',
-                                                    query={'message':
-                                                            REGISTER_FIRST}))
+                return HTTPFound(
+                        location=_view_url(context, request,
+                                           'register_url',
+                                           'register.html',
+                                           message=REGISTER_FIRST,
+                                          ))
             if token != info.token:
-                return HTTPFound(location=model_url(context, request,
-                                                'confirm_registration.html',
-                                                query={'message':
-                                                        CHECK_TOKEN}))
+                return HTTPFound(
+                        location=_view_url(context, request,
+                                           'confirmation_url',
+                                           'confirm_registration.html',
+                                           email=email,
+                                           message=CHECK_TOKEN,
+                                          ))
             confirmed = request.registry.queryAdapter(context, IRegistrations,
                                                       name='confirmed')
             if confirmed is None:  #pragma NO COVERAGE
@@ -248,29 +273,27 @@ def confirm_registration_view(context, request):
             else:
                 headers = ()
 
-            after_confirmation_url = request.registry.settings.get(
-                                            'cartouche.after_confirmation_url')
-            if after_confirmation_url is None:
-                after_confirmation_url = model_url(context, request,
-                                        'edit_account.html')
-            else:
-                if after_confirmation_url.startswith('/'):
-                    after_confirmation_url = urljoin(
-                                                model_url(context, request),
-                                                after_confirmation_url)
+            after_confirmation_url = _view_url(context, request,
+                                               'after_confirmation_url',
+                                               'edit_account.html',
+                                              )
             return HTTPFound(location=after_confirmation_url, headers=headers)
     else:
         email = request.GET.get('email')
         if email is None:
-            return HTTPFound(location=model_url(context, request,
-                                                'register.html',
-                                                query={'message':
-                                                        REGISTER_OR_VISIT}))
+            return HTTPFound(
+                        location=_view_url(context, request,
+                                           'register_url',
+                                           'register.html',
+                                           message=REGISTER_OR_VISIT,
+                                          ))
         if pending.get(email) is None:
-            return HTTPFound(location=model_url(context, request,
-                                                'register.html',
-                                                query={'message':
-                                                            REGISTER_FIRST}))
+            return HTTPFound(
+                        location=_view_url(context, request,
+                                           'register_url',
+                                           'register.html',
+                                           message=REGISTER_FIRST,
+                                          ))
         rendered_form = form.render({'email': email})
 
     main_template = get_renderer('templates/main.pt')
@@ -327,8 +350,11 @@ def edit_account_view(context, request):
                           security_question=security_question,
                           security_answer=security_answer,
                          )
-            return HTTPFound(location=model_url(context, request,
-                                                request.view_name))
+            return HTTPFound(
+                        location=_view_url(context, request,
+                                           'after_edit_url',
+                                           request.view_name,
+                                          ))
 
     main_template = get_renderer('templates/main.pt')
 

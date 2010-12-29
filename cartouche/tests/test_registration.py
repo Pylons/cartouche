@@ -201,7 +201,7 @@ class Test_register_view(_Base, unittest.TestCase):
         self.failUnless(SUMMARY_ERROR.search(rendered_form))
         self.failUnless(FIELD_ERROR.search(rendered_form))
 
-    def test_POST_no_errors(self):
+    def test_POST_no_errors_no_confirmation_url(self):
         from urllib import quote
         from repoze.sendmail.interfaces import IMailDelivery
         from webob.exc import HTTPFound
@@ -227,6 +227,40 @@ class Test_register_view(_Base, unittest.TestCase):
         self.assertEqual(response.location,
                          'http://example.com/confirm_registration.html'
                            '?email=%s' % quote(TO_EMAIL))
+        self.assertEqual(delivery._sent[0], FROM_EMAIL)
+        self.assertEqual(list(delivery._sent[1]), [TO_EMAIL])
+        info = pending[TO_EMAIL]
+        self.assertEqual(info.email, TO_EMAIL)
+        self.assertEqual(info.token, 'RANDOM')
+
+    def test_POST_no_errors_w_confirmation_url(self):
+        from urllib import quote
+        from repoze.sendmail.interfaces import IMailDelivery
+        from webob.exc import HTTPFound
+        from cartouche.interfaces import ITokenGenerator
+
+        FROM_EMAIL = 'admin@example.com'
+        TO_EMAIL = 'phred@example.com'
+        CONF_URL = '/confirm.html?foo=bar'
+        POST = {'email': TO_EMAIL,
+                'register': '',
+               }
+        self.config.registry.settings['cartouche.from_addr'] = FROM_EMAIL
+        self.config.registry.settings['cartouche.confirmation_url'] = CONF_URL
+        delivery = DummyMailer()
+        self.config.registry.registerUtility(delivery, IMailDelivery)
+        self.config.registry.registerUtility(DummyTokenGenerator(),
+                                             ITokenGenerator)
+        pending = self._registerPendingRegistrations()
+        context = self._makeContext()
+        request = self._makeRequest(POST=POST)
+
+        response = self._callFUT(context, request)
+
+        self.failUnless(isinstance(response, HTTPFound))
+        self.assertEqual(response.location,
+                         'http://example.com/confirm.html'
+                           '?foo=bar&email=%s' % quote(TO_EMAIL))
         self.assertEqual(delivery._sent[0], FROM_EMAIL)
         self.assertEqual(list(delivery._sent[1]), [TO_EMAIL])
         info = pending[TO_EMAIL]
@@ -268,6 +302,21 @@ class Test_confirm_registration_view(_Base, unittest.TestCase):
         self.assertEqual(response.location,
                          'http://example.com/register.html?message='
                          'Please+register+first.')
+
+    def test_GET_w_email_miss_w_register_url(self):
+        from webob.exc import HTTPFound
+        REG_URL = '/site_registration.html?foo=bar'
+        EMAIL = 'phred@example.com'
+        self.config.registry.settings['cartouche.register_url'] = REG_URL
+        pending = self._registerPendingRegistrations()
+        request = self._makeRequest(GET={'email': EMAIL})
+
+        response = self._callFUT(request=request)
+
+        self.failUnless(isinstance(response, HTTPFound))
+        self.assertEqual(response.location,
+                         'http://example.com/site_registration.html'
+                         '?foo=bar&message=Please+register+first.')
 
     def test_GET_w_email_hit(self):
         import re
@@ -327,6 +376,7 @@ class Test_confirm_registration_view(_Base, unittest.TestCase):
                          'Please+register+first.')
 
     def test_POST_w_token_miss(self):
+        from urllib import quote
         from webob.exc import HTTPFound
         EMAIL = 'phred@example.com'
         POST = {'email': EMAIL,
@@ -344,7 +394,7 @@ class Test_confirm_registration_view(_Base, unittest.TestCase):
         self.assertEqual(response.location,
                          'http://example.com/confirm_registration.html'
                          '?message=Please+copy+the+token+from+your'
-                         '+confirmation+e-mail.')
+                         '+confirmation+e-mail.&email=%s' % quote(EMAIL))
 
     def test_POST_w_token_hit_no_auto_login(self):
         from webob.exc import HTTPFound
@@ -722,6 +772,56 @@ class Test_edit_account_view(_Base, unittest.TestCase):
         self.failUnless(isinstance(response, HTTPFound))
         self.assertEqual(response.location,
                          'http://example.com/edit_account.html')
+
+        new_record = by_uuid['UUID']
+        self.assertEqual(new_record.login, 'after')
+        self.failUnless(pwd_mgr.checkPassword(new_record.password,
+                                              'newpassword'))
+        self.assertEqual(new_record.security_question, 'petname')
+        self.assertEqual(new_record.security_answer, 'Fido')
+        self.failIf(OLD_EMAIL in by_email)
+        self.assertEqual(by_email[NEW_EMAIL], 'UUID')
+        self.failIf('before' in by_login)
+        self.assertEqual(by_login['after'], 'UUID')
+
+    def test_POST_w_password_match_w_after_edit_url(self):
+        from webob.exc import HTTPFound
+        from webob.multidict import MultiDict
+        from zope.password.password import SSHAPasswordManager
+        AFTER = '/'
+        OLD_EMAIL = 'old_phred@example.com'
+        NEW_EMAIL = 'new_phred@example.com'
+        ENVIRON = {'repoze.who.identity': {'repoze.who.userid': 'UUID'}}
+        pwd_mgr = SSHAPasswordManager()
+        encoded = pwd_mgr.encodePassword('old_password')
+        by_uuid, by_login, by_email = self._registerConfirmed()
+        by_uuid['UUID'] = Dummy(login='before',
+                                email=OLD_EMAIL,
+                                password=encoded,
+                                security_question='borncity',
+                                security_answer='FXBG')
+        by_email[OLD_EMAIL] = by_login['before'] = 'UUID'
+        POST = MultiDict([('login_name', 'after'),
+                          ('email', NEW_EMAIL),
+                          ('old_password', 'old_password'),
+                          ('__start__', 'password:mapping'),
+                          ('value', 'newpassword'),
+                          ('confirm', 'newpassword'),
+                          ('__end__', 'password:mapping'),
+                          ('__start__', 'security:mapping'),
+                          ('question', 'petname'),
+                          ('answer', 'Fido'),
+                          ('__end__', 'security:mapping'),
+                          ('update', ''),
+                         ])
+        request = self._makeRequest(POST=POST, environ=ENVIRON,
+                                    view_name='edit_account.html')
+        request.registry.settings['cartouche.after_edit_url'] = AFTER
+
+        response = self._callFUT(request=request)
+
+        self.failUnless(isinstance(response, HTTPFound))
+        self.assertEqual(response.location, 'http://example.com/')
 
         new_record = by_uuid['UUID']
         self.assertEqual(new_record.login, 'after')
