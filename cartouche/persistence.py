@@ -1,16 +1,33 @@
+##############################################################################
+#
+# Copyright (c) 2010 Agendaless Consulting and Contributors.
+# All Rights Reserved.
+#
+# This software is subject to the provisions of the BSD-like license at
+# http://www.repoze.org/LICENSE.txt.  A copy of the license should accompany
+# this distribution.  THIS SOFTWARE IS PROVIDED "AS IS" AND ANY AND ALL
+# EXPRESS OR IMPLIED WARRANTIES ARE DISCLAIMED, INCLUDING, BUT NOT LIMITED TO,
+# THE IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, AGAINST INFRINGEMENT, AND
+# FITNESS FOR A PARTICULAR PURPOSE
+#
+##############################################################################
+
+from pyramid.traversal import find_root
 from zope.interface import implements
 
 from cartouche.interfaces import IRegistrations
+from cartouche.models import Cartouche
+from cartouche.models import PendingRegistrationInfo
+from cartouche.models import RegistrationInfo
 
 
 class _RegistrationsBase(object):
     """ Default implementation for ZODB-based storage.
 
-    Stores registration info in a BTree named 'pending', an attribute of the
-    root object's 'cartouche' attribute.
-    """
-    implements(IRegistrations)
+    Finds / creates a 'cartouche' attribute of the traversal root.
 
+    Stores registration info in mapping attributes of the 'cartouche' object.
+    """
     def __init__(self, context):
         self.context = context
 
@@ -18,8 +35,7 @@ class _RegistrationsBase(object):
         """ See IRegistrations.
         """
         info = self._makeInfo(key, **kw)
-        cartouche = self._getCartouche(True)
-        self._getMapping(cartouche)[key] = info
+        self.set_record(key, info)
 
     def set_record(self, key, record):
         """ See IRegistrations.
@@ -44,56 +60,96 @@ class _RegistrationsBase(object):
         del self._getMapping(cartouche)[key]
 
     def _getCartouche(self, create=False):
-        # Import here to allow reuse of views without stock models.
-        from pyramid.traversal import find_root
-        from cartouche.models import Cartouche
         root = find_root(self.context)
         cartouche = getattr(root, 'cartouche', None)
         if cartouche is None and create:
             cartouche = root.cartouche = Cartouche()
         return cartouche
 
-    def _getMapping(self, cartouche):
-        return getattr(cartouche, self.ATTR)
+    def _getMapping(self, cartouche, attr=None):
+        if attr is None:
+            attr = self.ATTR
+        return getattr(cartouche, attr)
 
 
 class PendingRegistrations(_RegistrationsBase):
+    """ Adapter for looking up pending registrations, keyed by email.
+    """
+    implements(IRegistrations)
     ATTR = 'pending'
 
     def _makeInfo(self, key, **kw):
         # Import here to allow reuse of views without stock models.
-        from cartouche.models import PendingRegistrationInfo as PRI
         token = kw['token']
-        return PRI(email=key, token=token)
+        return PendingRegistrationInfo(email=key, token=token)
+
+    def get_by_email(self, email, default=None):
+        """ See IRegistrations.
+        """
+        return self.get(email, default)
+
+    def get_by_login(self, login, default=None):
+        """ See IRegistrations.
+        """
+        raise NotImplementedError
 
 
-class ByEmailRegistrations(_RegistrationsBase):
-    ATTR = 'by_email'
+class ConfirmedRegistrations(_RegistrationsBase):
+    """ Adapter for looking up confirmed registrations, keyed by UUID.
+    """
+    implements(IRegistrations)
+    ATTR = 'by_uuid'
 
     def _makeInfo(self, key, **kw):
-        # Import here to allow reuse of views without stock models.
-        from cartouche.models import RegistrationInfo as RI
-        login = kw.get('login', key)
+        email = kw['email']
+        login = kw['login']
         password = kw.get('password')
         security_question = kw.get('security_question')
         security_answer = kw.get('security_answer')
-        return RI(email=key, login=login, password=password,
-                  security_question=security_question,
-                  security_answer=security_answer,
-                 )
+        return RegistrationInfo(email=email,
+                                login=login,
+                                password=password,
+                                security_question=security_question,
+                                security_answer=security_answer,
+                               )
 
+    def set_record(self, key, record):
+        """ See IRegistrations.
+        """
+        cartouche = self._getCartouche(True)
+        self._getMapping(cartouche)[key] = record
+        self._getMapping(cartouche, 'by_login')[record.login] = key
+        self._getMapping(cartouche, 'by_email')[record.email] = key
 
-class ByLoginRegistrations(_RegistrationsBase):
-    ATTR = 'by_login'
+    def get_by_email(self, email, default=None):
+        """ See IRegistrations.
+        """
+        cartouche = self._getCartouche()
+        if cartouche is None:
+            return default
+        uuid = self._getMapping(cartouche, 'by_email').get(email)
+        if uuid is None:
+            return default
+        return self.get(uuid)
 
-    def _makeInfo(self, key, **kw):
-        # Import here to allow reuse of views without stock models.
-        from cartouche.models import RegistrationInfo as RI
-        email = kw.get('email', key)
-        password = kw.get('password')
-        security_question = kw.get('security_question')
-        security_answer = kw.get('security_answer')
-        return RI(email=email, login=key, password=password,
-                  security_question=security_question,
-                  security_answer=security_answer,
-                 )
+    def get_by_login(self, login, default=None):
+        """ See IRegistrations.
+        """
+        cartouche = self._getCartouche()
+        if cartouche is None:
+            return default
+        uuid = self._getMapping(cartouche, 'by_login').get(login)
+        if uuid is None:
+            return default
+        return self.get(uuid)
+
+    def remove(self, key):
+        """ See IRegistrations.
+        """
+        cartouche = self._getCartouche()
+        if cartouche is None:
+            raise KeyError(key)
+        record = self._getMapping(cartouche)[key]
+        del self._getMapping(cartouche)[key]
+        del self._getMapping(cartouche, 'by_login')[record.login]
+        del self._getMapping(cartouche, 'by_email')[record.email]
