@@ -58,9 +58,11 @@ Update Account Login
 Login / Logout
 --------------
 
-- [/] Implement login view following the ``repoze.who`` 2.0 docs.
+- [X] Implement login view following the ``repoze.who`` 2.0 docs.
 
       * Compare passwords using ``zope.password`` utility.
+
+- [X] Implement logout view following the ``repoze.who`` 2.0 docs.
 
 
 Password Recovery / Reset
