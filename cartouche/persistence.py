@@ -37,13 +37,7 @@ class _RegistrationsBase(object):
         """ See IRegistrations.
         """
         info = self._makeInfo(key, **kw)
-        self.set_record(key, info)
-
-    def set_record(self, key, record):
-        """ See IRegistrations.
-        """
-        cartouche = self._getCartouche(True)
-        self._getMapping()[key] = record
+        self._setRecord(key, info)
 
     def get(self, key, default=None):
         """ See IRegistrations.
@@ -80,6 +74,10 @@ class _RegistrationsBase(object):
             attr = self.ATTR
         return getattr(self.cartouche, attr)
 
+    def _setRecord(self, key, record):
+        cartouche = self._getCartouche(True)
+        self._getMapping()[key] = record
+
 
 class PendingRegistrations(_RegistrationsBase):
     """ Adapter for looking up pending registrations, keyed by email.
@@ -108,27 +106,6 @@ class ConfirmedRegistrations(_RegistrationsBase):
     """
     implements(IRegistrations)
     ATTR = 'by_uuid'
-
-    def _makeInfo(self, key, **kw):
-        email = kw['email']
-        login = kw['login']
-        password = kw.get('password')
-        security_question = kw.get('security_question')
-        security_answer = kw.get('security_answer')
-        return RegistrationInfo(email=email,
-                                login=login,
-                                password=password,
-                                security_question=security_question,
-                                security_answer=security_answer,
-                               )
-
-    def set_record(self, key, record):
-        """ See IRegistrations.
-        """
-        self._getCartouche(True)
-        self._getMapping()[key] = record
-        self._getMapping('by_login')[record.login] = key
-        self._getMapping('by_email')[record.email] = key
 
     def get_by_email(self, email, default=None):
         """ See IRegistrations.
@@ -162,3 +139,26 @@ class ConfirmedRegistrations(_RegistrationsBase):
         del self._getMapping()[key]
         del self._getMapping('by_login')[record.login]
         del self._getMapping('by_email')[record.email]
+
+    def _makeInfo(self, key, **kw):
+        email = kw['email']
+        login = kw['login']
+        password = kw.get('password')
+        security_question = kw.get('security_question')
+        security_answer = kw.get('security_answer')
+        return RegistrationInfo(email=email,
+                                login=login,
+                                password=password,
+                                security_question=security_question,
+                                security_answer=security_answer,
+                               )
+
+    def _setRecord(self, key, record):
+        self._getCartouche(True)
+        old_record = self._getMapping().get(key)
+        if old_record is not None:
+            del self._getMapping('by_login')[old_record.login]
+            del self._getMapping('by_email')[old_record.email]
+        self._getMapping()[key] = record
+        self._getMapping('by_login')[record.login] = key
+        self._getMapping('by_email')[record.email] = key

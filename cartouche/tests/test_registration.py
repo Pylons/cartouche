@@ -52,7 +52,7 @@ class _Base(object):
                 return pending.get(key, default)
             def set(self, key, **kw):
                 pending[key] = Dummy(email=key, **kw)
-            def set_record(self, key, record):
+            def setRecord(self, key, record):
                 pending[key] = record
             def remove(self, key):
                 del pending[key]
@@ -82,12 +82,11 @@ class _Base(object):
                     return default
                 return by_uuid.get(uuid, default)
             def set(self, key, **kw):
-                self.set_record(key, Dummy(**kw))
-            def set_record(self, key, record):
                 old_record = by_uuid.get(key)
                 if old_record is not None:
                     del by_login[old_record.login]
                     del by_email[old_record.email]
+                record =  Dummy(**kw)
                 by_uuid[key] = record
                 by_login[record.login] = key
                 by_email[record.email] = key

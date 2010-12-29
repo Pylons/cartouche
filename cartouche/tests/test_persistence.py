@@ -100,38 +100,6 @@ class PendingRegistrationsTests(_RegistrationsBase, unittest.TestCase):
 
         self._verifyInfo(cartouche.pending['phred@example.com'])
 
-    def test_set_record_context_is_root_no_cartouche(self):
-        context = self._makeContext()
-        adapter = self._makeOne(context)
-
-        record = object()
-        adapter.set_record('phred@example.com', record)
-
-        self.failUnless(context.cartouche.pending['phred@example.com']
-                            is record)
-
-    def test_set_record_context_is_root_w_cartouche(self):
-        context = self._makeContext()
-        cartouche = context.cartouche = self._makeCartouche()
-        adapter = self._makeOne(context)
-
-        record = object()
-        adapter.set_record('phred@example.com', record)
-
-        self.failUnless(cartouche.pending['phred@example.com'] is record)
-
-    def test_set_record_context_is_not_root(self):
-        root = self._makeContext()
-        cartouche = root.cartouche = self._makeCartouche()
-        parent = root['parent'] = self._makeContext()
-        context = parent['context'] = self._makeContext()
-        adapter = self._makeOne(context)
-
-        record = object()
-        adapter.set_record('phred@example.com', record)
-
-        self.failUnless(cartouche.pending['phred@example.com'] is record)
-
     def test_get_context_is_root_no_cartouche(self):
         context = self._makeContext()
         adapter = self._makeOne(context)
@@ -284,43 +252,21 @@ class ConfirmedRegistrationsTests(_RegistrationsBase, unittest.TestCase):
         self.assertEqual(cartouche.by_email['phred@example.com'], 'UUID')
         self.assertEqual(cartouche.by_login['login'], 'UUID')
 
-    def test_set_record_context_is_root_no_cartouche(self):
-        context = self._makeContext()
-        adapter = self._makeOne(context)
-
-        record = Dummy(login='login', email='phred@example.com')
-        adapter.set_record('UUID', record)
-
-        cartouche = context.cartouche
-        self.failUnless(cartouche.by_uuid['UUID'] is record)
-        self.assertEqual(cartouche.by_login['login'], 'UUID')
-        self.assertEqual(cartouche.by_email['phred@example.com'], 'UUID')
-
-    def test_set_record_context_is_root_w_cartouche(self):
+    def test_set_unindexes_old_login_and_email(self):
         context = self._makeContext()
         cartouche = context.cartouche = self._makeCartouche()
         adapter = self._makeOne(context)
 
-        record = Dummy(login='login', email='phred@example.com')
-        adapter.set_record('UUID', record)
+        adapter.set('UUID', email='old_phred@example.com', login='old_login')
+        adapter.set('UUID', email='new_phred@example.com', login='new_login')
 
-        self.failUnless(cartouche.by_uuid['UUID'] is record)
-        self.assertEqual(cartouche.by_login['login'], 'UUID')
-        self.assertEqual(cartouche.by_email['phred@example.com'], 'UUID')
-
-    def test_set_record_context_is_not_root(self):
-        root = self._makeContext()
-        cartouche = root.cartouche = self._makeCartouche()
-        parent = root['parent'] = self._makeContext()
-        context = parent['context'] = self._makeContext()
-        adapter = self._makeOne(context)
-
-        record = Dummy(login='login', email='phred@example.com')
-        adapter.set_record('UUID', record)
-
-        self.failUnless(cartouche.by_uuid['UUID'] is record)
-        self.assertEqual(cartouche.by_login['login'], 'UUID')
-        self.assertEqual(cartouche.by_email['phred@example.com'], 'UUID')
+        record = cartouche.by_uuid['UUID']
+        self.assertEqual(record.email, 'new_phred@example.com')
+        self.assertEqual(record.login, 'new_login')
+        self.assertEqual(cartouche.by_login['new_login'], 'UUID')
+        self.assertEqual(cartouche.by_email['new_phred@example.com'], 'UUID')
+        self.failIf('old_login' in cartouche.by_login)
+        self.failIf('old_phred@example.com' in cartouche.by_email)
 
     def test_get_context_is_root_no_cartouche(self):
         context = self._makeContext()
