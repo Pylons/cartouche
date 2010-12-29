@@ -4,67 +4,103 @@ Configuring ``cartouche``
 Views
 +++++
 
-By default, :mod:`cartouche` provides a stock set of :mod:`pyramid` views
-for user registration, login / logout, password / account recovery, and
-user administration:
+Default Configuration
+---------------------
+
+You can include the default :mod:`cartouche` view configuration, either
+directly via imperative Python code:
+
+.. code-block:: python
+
+   config.load_zcml('cartouche:configure.zcml')
+
+or via ZCML in your package:
 
 .. code-block:: xml
 
    <configure xmlns="http://pylonshq.com/pyramid">
 
     <!-- this must be included for the view declarations to work -->
-    <include package="pyramid.includes" />
+    <include package="pyramid.includes"/>
 
-    <view
-        context="*"
-        name="register.html"
-        view="cartouche.registration.register_view"
-        renderer="templates/register.pt"
-        />
-
-    <view
-        context="*"
-        name="confirm_registration.html"
-        view="cartouche.registration.confirm_registration_view"
-        renderer="templates/register.pt"
-        />
-
-    <view
-        context="*"
-        name="edit_account.html"
-        view="cartouche.registration.edit_account_view"
-        renderer="templates/register.pt"
-        />
-
-    <view
-        context="*"
-        name="login.html"
-        view="cartouche.login.login_view"
-        renderer="templates/login.pt"
-        />
-
-    <view
-        context="*"
-        name="recover_login.html"
-        view="cartouche.login.recover_login_view"
-        renderer="templates/login.pt"
-        />
-
-    <view
-        context="*"
-        name="recover_password.html"
-        view="cartouche.login.recover_password_view"
-        renderer="templates/login.pt"
-        />
-
-    <view
-        context="*"
-        name="logout.html"
-        view="cartouche.login.logout_view"
-        />
+    <include package="cartouche"/>
 
    </configure>
 
+Either way, the following views get registered:
+
+``/register.html``
+    Renders a form to collect the user's e-mail address.  On POST,
+    generates and saves a token for the user in the "pending" store,
+    and sends the user a confirmation e-mail including the token, then
+    redirects to ``/confirm_registration.html``.
+
+``/confirm_registration.html``
+    Renders a form to collect the token mailed to the user, along with
+    user's e-mail address.  On POST, moves the registration information
+    for the user to the "confirmed" store under a unique, opaque ID,
+    then redirects to ``/edit_account.html``.
+
+``/edit_account.html``
+    Allows the user to update their login name and e-mail, as well as
+    setting their own password and security question / answer.  If the user
+    already has a password set, requires that it be supplied.
+
+``/login.html``
+    Prompts the user for login name and password.  On POST, if provided
+    values match, uses the :mod:`repoze.who` API to "remember" the user.
+
+``/logout.html``
+    Uses the :mod:`repoze.who` API to "forget" the user.
+
+``/recover_login.html``
+    Prompts the user for their e-mail address.  On POST, sends the user an
+    e-mail reminding them of their login name, and redirects to
+    ``/login.html``.
+
+``/reset_pasword.html``
+    Prompts the user for their login name, token, and new password.  On POST
+    without a token, generates and saves a token for the user, and sends
+    the user a confirmation e-mail containing the token.  On POST with a
+    matching token, saves the supplied password for the user and redirects
+    to ``/login.html``.
+
+
+Overriding the View Configuration
+---------------------------------
+
+To override the stock configuration (e.g., to change the view names,
+provide your own view implementations, etc.), copy the stock ZCML file into
+your own package and tweak it.  E.g.:
+
+.. code-block:: sh
+
+   $ cp $cartouche_egg/cartouche/configure.zcml yourpackage/cartouche.zcml
+
+Then include the tweaked version instead of the stock version, either via
+imperative Python code:
+
+.. code-block:: python
+
+   config.load_zcml('yourpackage:cartouche.zcml')
+
+or via ZCML in your package:
+
+.. code-block:: xml
+
+   <configure xmlns="http://pylonshq.com/pyramid">
+
+    <!-- this must be included for the view declarations to work -->
+    <include package="pyramid.includes"/>
+
+    <include file="cartouche.zcml"/>
+
+   </configure>
+
+.. note::
+
+   If you change the view names, you need to configure the new URLs into
+   :mod:`cartouche` using :ref:`global_settings`.
 
 Replacing the "O-wrap"
 ----------------------
@@ -93,11 +129,12 @@ See http://docs.pylonshq.com/pyramid/dev/narr/assets.html#overriding-assets
 for details on overriding templates as "assets".
 
 The template used to override the :mod:`cartouche` main template must provide
-a ``ZPT`` "slot" named ``main``, which will be filled by the :mod:`cartouche`
+a ``ZPT slot`` " named ``main``, which will be filled by the :mod:`cartouche`
 view templates.
 
+.. _global_settings:
 
-Global settings
+Global Settings
 +++++++++++++++
 
 Some policies can be configured as simple scalar values in the
@@ -107,7 +144,10 @@ global ``PasteDeploy`` configuration file:
 
    [app:yourapp]
    cartouche.from_addr = site-admin@example.com
+   cartouche.register_url = /site_registration.html
+   cartouche.confirmation_url = /confirm.html
    cartouche.after_confirmation_url = /thank_you_for_registering.html
+   cartouche.after_edit_url = /after_account_edit.html
    cartouche.auth_tkt_plugin_id = auth_tkt_id
 
 
@@ -116,9 +156,24 @@ global ``PasteDeploy`` configuration file:
     to users about their site registration / account information. 
     **Required.**
 
+``cartouche.register_url``
+    The URL to which users are redirected to start the registration
+    process.  If a relative URL, it will be prepended with
+    the Pyramid site root URL.  *Default:  /register.html*
+
+``cartouche.confirmation_url``
+    The URL to which users are redirected after starting the registration
+    process.  If a relative URL, it will be prepended with
+    the Pyramid site root URL.  *Default:  /confirm_registration.html*
+
 ``cartouche.after_confirmation_url``
     The URL to which users are redirected after successfully confirming
     their site registration.  If a relative URL, it will be prepended with
+    the Pyramid site root URL.  *Default:  /edit_account.html*
+
+``cartouche.after_edit_url``
+    The URL to which users are redirected after successfully editing
+    their accout.  If a relative URL, it will be prepended with
     the Pyramid site root URL.  *Default:  /edit_account.html*
 
 ``cartouche.auth_tkt_plugin_id``
@@ -230,7 +285,7 @@ Some :mod:`cartouche` policies are configured as "adapters" (see
 http://docs.pylonshq.com/pyramid/dev/narr/zca.html).
 
 Persistent Storage
------------------
+------------------
 
 By default, :mod:`cartouche` expects to store information about users
 in and attribute of the "traversal root" named ``cartouche``.  This strategy
@@ -260,18 +315,18 @@ or ZCML:
    <configure xmlns="http://pylonshq.com/pyramid">
 
     <!-- this must be included for the adapter declarations to work -->
-    <include package="pyramid.includes" />
+    <include package="pyramid.includes"/>
 
     <adapter
         provides="cartouche.interfaces.IRegistrations"
         name="pending"
         for="*"
-        factory="yourpackage.userstore.PendingStore" />
+        factory="yourpackage.userstore.PendingStore"/>
 
     <adapter
         provides="cartouche.interfaces.IRegistrations"
         name="confirmed"
         for="*"
-        factory="yourpackage.userstore.ConfirmedStore" />
+        factory="yourpackage.userstore.ConfirmedStore"/>
 
    </configure>

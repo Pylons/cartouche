@@ -1,10 +1,9 @@
-.. cartouche documentation master file, created by
-   sphinx-quickstart on Wed Dec  8 12:02:43 2010.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+Documentation for :mod:`cartouche`
+==================================
 
-Welcome to cartouche's documentation!
-=====================================
+:mod:`cartouche` provides a reusable set of :mod:`pyramid` views
+for user registration, login / logout, account recovery, password reset, and
+user / group administration. 
 
 Contents:
 
