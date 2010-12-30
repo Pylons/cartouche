@@ -107,6 +107,24 @@ Password Reset
       * Make "after reset" URL configurable via Pyramid ``settings``.
 
 
+``repoze.who`` Authentication Plugin
+------------------------------------
+
+- [_] Enable use of real persistent store for ``repoze.who`` API.
+
+      o Require ``zodb_uri`` in plugin section of who config.
+
+
+``pyramid`` Authentication Policy
+---------------------------------
+
+- [_] Implement interface for use within ``pyramid`` sans ``repoze.who``.
+
+      o Use ``cartouche.zodb_uri`` setting, if present.
+
+      o Fall back to using the ``repoze.who.zodbconn`` in the environment.
+
+
 User / Group Administration
 ---------------------------
 
