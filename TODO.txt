@@ -112,7 +112,9 @@ Password Reset
 
 - [_] Enable use of real persistent store for ``repoze.who`` API.
 
-      o Require ``zodb_uri`` in plugin section of who config.
+      o Use ``zodb_uri`` from plugin section of who config, if exists.
+
+      o Fall back to using the ``repoze.who.zodbconn`` in the environment.
 
 
 ``pyramid`` Authentication Policy
