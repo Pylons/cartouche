@@ -105,28 +105,6 @@ class _Base(object):
         self.config.registry.registerUtility(autoLoginViaAuthTkt)
 
 
-class Test_getRandomToken(_Base, unittest.TestCase):
-
-    def _callFUT(self, request=None):
-        from cartouche.registration import getRandomToken
-        if request is None:
-            request = self._makeRequest()
-        return getRandomToken(request)
-
-    def test_wo_utility(self):
-        from uuid import UUID
-        token = self._callFUT()
-        uuid = UUID(token)
-        self.assertEqual(uuid.version, 4)
-
-    def test_w_utility(self):
-        from cartouche.interfaces import ITokenGenerator
-        self.config.registry.registerUtility(DummyTokenGenerator(),
-                                             ITokenGenerator)
-        token = self._callFUT()
-        self.assertEqual(token, 'RANDOM')
-
-
 class Test_autoLoginViaAuthTkt(_Base, unittest.TestCase):
 
     def _callFUT(self, userid='testing', request=None):

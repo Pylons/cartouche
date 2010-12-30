@@ -16,13 +16,16 @@ from urlparse import parse_qsl
 from urlparse import urljoin
 from urlparse import urlparse
 from urlparse import urlunparse
+from uuid import uuid4
 
 from pyramid.url import model_url
 from repoze.sendmail.delivery import DirectMailDelivery
 from repoze.sendmail.mailer import SMTPMailer
 
+from cartouche.interfaces import ITokenGenerator
+
 # By default, deliver e-mail via localhost, port 25.
-_delivery = DirectMailDelivery(SMTPMailer())
+localhost_mta = DirectMailDelivery(SMTPMailer())
 
 def _fixup_url(context, request, base_url, **extra_qs):
     if base_url.startswith('/'):
@@ -32,10 +35,16 @@ def _fixup_url(context, request, base_url, **extra_qs):
     qs = urlencode(qs_items, 1)
     return urlunparse((sch, netloc, path, parms, qs, frag))
 
-def _view_url(context, request, key, default_name, **extra_qs):
+def view_url(context, request, key, default_name, **extra_qs):
     configured = request.registry.settings.get('cartouche.%s' % key)
     if configured is None:
         if extra_qs:
             return model_url(context, request, default_name, query=extra_qs)
         return model_url(context, request, default_name)
     return _fixup_url(context, request, configured, **extra_qs)
+
+def getRandomToken(request):
+    generator = request.registry.queryUtility(ITokenGenerator)
+    if generator:
+        return generator.getToken()
+    return str(uuid4())
