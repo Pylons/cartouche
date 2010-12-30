@@ -97,8 +97,10 @@ def _make_confirmed(key, kw):
     password = kw.get('password')
     question = kw.get('security_question')
     answer = kw.get('security_answer')
+    token = kw.get('token')
     return Dummy(uuid=key, email=email, login=login, password=password,
-                 security_question=question, security_answer=question)
+                 security_question=question, security_answer=answer,
+                 token=token)
 
 
 FauxPendingRegistrations = _factory(_make_pending)
@@ -137,4 +139,26 @@ def homepage_view(context, request):
             'authenticated_user': authenticated_user,
             'login_name': login_name,
             'email': email,
+           }
+
+def debug_view(context, request):
+    pending = FauxPendingRegistrations(context)
+    confirmed = FauxConfirmedRegistrations(context)
+    identity = request.environ.get('repoze.who.identity')
+    authenticated_user = login_name = email = None
+    if identity is not None:
+        authenticated_user = identity['repoze.who.userid']
+        account_info = confirmed.get(authenticated_user) 
+        if account_info is None:
+            authenticated_user = login_name = email = None
+        else:
+            login_name = account_info.login
+            email = account_info.email
+    main_template = get_renderer('templates/main.pt')
+    return {'main_template': main_template.implementation(),
+            'authenticated_user': authenticated_user,
+            'login_name': login_name,
+            'email': email,
+            'pending': sorted(pending._store.items()),
+            'confirmed': sorted(confirmed._store.items()),
            }

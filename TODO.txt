@@ -65,7 +65,7 @@ Login / Logout
 
       o Handle ``came_from`` URLs properly.
 
-- [X] Implement logout view following the ``repoze.who`` 2.0 docs.
+- [/] Implement logout view following the ``repoze.who`` 2.0 docs.
 
       ? Display a confirmation dialog and require POST?
 
@@ -88,25 +88,23 @@ Account Recovery
 Password Reset
 --------------
 
-- [_] Prompt the user for their login name.
+- [X] Prompt the user for their login name.
 
-      o Hide the 'token' and 'password fields on initial GET.
-
-      o On POST without token, generate and seve a quasi-random token
+      * On POST without token, generate and seve a quasi-random token
         on the user's record.  Render the form showing the token and
         password fields.
 
-      o Send the user an e-mail containing the token, directing them to
+      * Send the user an e-mail containing the token, directing them to
         cut-and-paste it into the view.
 
-      o Include a link to the view in the e-mail.
+      * Include a link to the view in the e-mail.
 
-      o On POST with mismatched token, display an error.
+      * On POST with mismatched token, display an error.
 
-      o On POST with the matching token, update the user's password. and
-        redirect to the login view.
+      * On POST with the matching token, auto-login the user, and
+        redirect to the "edit account" view.
 
-      o Make login URL configurable via Pyramid ``settings``.
+      * Make "after reset" URL configurable via Pyramid ``settings``.
 
 
 User / Group Administration

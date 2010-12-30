@@ -27,6 +27,13 @@
 
  <view
     context=".models.Root"
+    name="debug.html"
+    view=".testing.debug_view"
+    renderer="templates/testing_debug.pt"
+    />
+
+ <view
+    context=".models.Root"
     name="register.html"
     view=".registration.register_view"
     renderer="templates/register.pt"
@@ -63,6 +70,13 @@
     context=".interfaces.IRoot"
     name="recover_account.html"
     view=".login.recover_account_view"
+    renderer="templates/login.pt"
+    />
+
+ <view
+    context=".interfaces.IRoot"
+    name="reset_password.html"
+    view=".login.reset_password_view"
     renderer="templates/login.pt"
     />
 

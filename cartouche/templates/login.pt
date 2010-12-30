@@ -1,5 +1,7 @@
 <metal:body metal:use-macro="main_template">
  <metal:slot metal:fill-slot="main">
+  <p tal:condition="message" style="color: red">${message}</p>
+
   <div tal:content="structure rendered_form">
    FORM GOES HERE
   </div>

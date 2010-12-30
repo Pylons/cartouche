@@ -27,10 +27,12 @@ from repoze.sendmail.interfaces import IMailDelivery
 from repoze.who.api import get_api
 from webob.exc import HTTPFound
 
+from cartouche.interfaces import IAutoLogin
 from cartouche.interfaces import IRegistrations
 from cartouche.persistence import ConfirmedRegistrations
-from cartouche._util import _delivery
-from cartouche._util import _view_url
+from cartouche.util import getRandomToken
+from cartouche.util import localhost_mta
+from cartouche.util import view_url
 
 class Login(Schema):
     login_name = SchemaNode(String())
@@ -63,12 +65,12 @@ def login_view(context, request):
     return {'main_template': main_template.implementation(),
             'rendered_form': rendered_form,
             'message': message,
-            'recover_account_url': _view_url(context, request,
-                                             'recover_account_url',
-                                             'recover_account.html'),
-            'reset_password_url': _view_url(context, request,
-                                             'reset_password_url',
-                                             'reset_password.html'),
+            'recover_account_url': view_url(context, request,
+                                            'recover_account_url',
+                                            'recover_account.html'),
+            'reset_password_url': view_url(context, request,
+                                           'reset_password_url',
+                                           'reset_password.html'),
            }
 
 
@@ -103,7 +105,7 @@ def recover_account_view(context, request):
                                               name='confirmed')
     if confirmed is None:  #pragma NO COVERAGE
         confirmed = ConfirmedRegistrations(context)
-    login_url = _view_url(context, request, 'login_url', 'login.html')
+    login_url = view_url(context, request, 'login_url', 'login.html')
     registry = request.registry
 
     if 'recover' in request.POST:
@@ -120,7 +122,7 @@ def recover_account_view(context, request):
                 body = RECOVERY_EMAIL % {'login': login,
                                          'login_url': login_url}
                 delivery = registry.queryUtility(IMailDelivery,
-                                                 default=_delivery)
+                                                 default=localhost_mta)
                 message = Message()
                 message.set_payload(body)
                 delivery.send(from_addr, [email], message)
@@ -130,7 +132,110 @@ def recover_account_view(context, request):
     main_template = get_renderer('templates/main.pt')
     return {'main_template': main_template.implementation(),
             'rendered_form': rendered_form,
-            'reset_password_url': _view_url(context, request,
-                                             'reset_password_url',
-                                             'reset_password.html'),
+            'reset_password_url': view_url(context, request,
+                                           'reset_password_url',
+                                           'reset_password.html'),
+           }
+
+
+RESET_EMAIL = """
+You have requested a password reset.
+
+In your browser, please copy and paste the following string
+into the 'Token' field:
+
+  %(token)s
+
+If you do not still have that page open, you can visit it via
+this URL:
+
+  %(reset_url)s
+
+Once you have entered the token, click the "Reset" button to
+be logged in to change your password.
+"""
+
+CHECK_TOKEN = ('Please copy the token from your password reset e-mail.')
+
+
+class ResetPassword(Schema):
+    login_name = SchemaNode(String())
+    token = SchemaNode(String(), missing='')
+
+
+def reset_password_view(context, request):
+    form = Form(ResetPassword(), buttons=('reset',))
+    rendered_form = form.render(null)
+    confirmed = request.registry.queryAdapter(context, IRegistrations,
+                                              name='confirmed')
+    if confirmed is None:  #pragma NO COVERAGE
+        confirmed = ConfirmedRegistrations(context)
+    login_url = view_url(context, request, 'login_url', 'login.html')
+    reset_url = model_url(context, request, request.view_name)
+    registry = request.registry
+    message = request.GET.get('message')
+
+    if 'reset' in request.POST:
+        try:
+            appstruct = form.validate(request.POST.items())
+        except ValidationFailure, e: #pragma NO COVER
+            rendered_form = e.render()
+        else:
+            login = appstruct['login_name']
+            token = appstruct['token']
+            record = confirmed.get_by_login(login)
+            if record is None:
+                return HTTPFound(location=login_url)
+            if token == '':
+                # send the e-mail
+                new_token = getRandomToken(request)
+                confirmed.set(record.uuid,
+                              email=record.email,
+                              login=login, 
+                              password=record.password,
+                              security_question=record.security_question,
+                              security_answer=record.security_answer,
+                              token=new_token,
+                             )
+                from_addr = registry.settings['cartouche.from_addr']
+                body = RESET_EMAIL % {'token': new_token,
+                                      'reset_url': reset_url}
+                delivery = registry.queryUtility(IMailDelivery,
+                                                 default=localhost_mta)
+                message = Message()
+                message.set_payload(body)
+                delivery.send(from_addr, [record.email], message)
+                #else: # XXX not reporting lookup errors for now
+                return HTTPFound(location=reset_url)
+            else:
+                if token != record.token:
+                    message = CHECK_TOKEN
+                    # fall through to 'GET'
+                else:
+                    confirmed.set(record.uuid,
+                                  email=record.email,
+                                  login=record.login, 
+                                  password=None,  # clear it to allow update
+                                  security_question=record.security_question,
+                                  security_answer=record.security_answer,
+                                  token=None,     # clear it
+                                 )
+                    auto_login = request.registry.queryUtility(IAutoLogin)
+                    if auto_login is not None:
+                        headers = auto_login(record.uuid, request)
+                    else:
+                        headers = ()
+                    after_reset_url = view_url(context, request,
+                                               'after_reset_url',
+                                               'edit_account.html',
+                                              )
+                    return HTTPFound(location=after_reset_url, headers=headers)
+
+    main_template = get_renderer('templates/main.pt')
+    return {'main_template': main_template.implementation(),
+            'message': message,
+            'rendered_form': rendered_form,
+            'recover_account_url': view_url(context, request,
+                                            'recover_account_url',
+                                            'recover_account.html'),
            }
