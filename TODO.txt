@@ -21,9 +21,11 @@ Registration
 
       * Make confirmation URL configurable via Pyramid ``settings``.
 
-- [Xj When token confirmed, add e-mail-confirmed user to ``ZODB`` user store.
+- [/j When token confirmed, add e-mail-confirmed user to ``ZODB`` user store.
 
-      * Auto-login the user using the ``repoze.who`` API.
+      o If an ``IAutoLogin`` utility is configured, use it to auto-login the
+        user;  otherwise,  generate a random password and e-mail it to the
+        user.
 
       * Redirect to the "edit account" page by default (configurable
         via the Pyramid ``settings``).
@@ -88,7 +90,7 @@ Account Recovery
 Password Reset
 --------------
 
-- [X] Prompt the user for their login name.
+- [/] Prompt the user for their login name.
 
       * On POST without token, generate and seve a quasi-random token
         on the user's record.  Render the form showing the token and
@@ -101,8 +103,9 @@ Password Reset
 
       * On POST with mismatched token, display an error.
 
-      * On POST with the matching token, auto-login the user, and
-        redirect to the "edit account" view.
+      o On POST with the matching token, if an ``IAutoLogin`` utility is
+        configured, use it to auto-login the user;  otherwise, generate a
+        random password and e-mail it to the user.
 
       * Make "after reset" URL configurable via Pyramid ``settings``.
 
