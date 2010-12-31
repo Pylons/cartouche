@@ -146,12 +146,14 @@ class ConfirmedRegistrations(_RegistrationsBase):
         password = kw.get('password')
         security_question = kw.get('security_question')
         security_answer = kw.get('security_answer')
+        token = kw.get('token')
         return RegistrationInfo(uuid=key,
                                 email=email,
                                 login=login,
                                 password=password,
                                 security_question=security_question,
                                 security_answer=security_answer,
+                                token=token,
                                )
 
     def _setRecord(self, key, record):

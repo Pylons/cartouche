@@ -193,11 +193,23 @@ class ConfirmedRegistrationsTests(_RegistrationsBase, unittest.TestCase):
     def _makeInfo(self, login='login', email='phred@example.com'):
         return Dummy(login=login, email=email)
 
-    def _verifyInfo(self, info, email='phred@example.com', login='login'):
+    def _verifyInfo(self,
+                    info,
+                    email='phred@example.com',
+                    login='login',
+                    password='password',
+                    security_question='question',
+                    security_answer='answer',
+                    token='token',
+                   ):
         from cartouche.interfaces import IRegistrationInfo
         self.failUnless(IRegistrationInfo.providedBy(info))
         self.assertEqual(info.email, email)
         self.assertEqual(info.login, login)
+        self.assertEqual(info.password, password)
+        self.assertEqual(info.security_question, security_question)
+        self.assertEqual(info.security_answer, security_answer)
+        self.assertEqual(info.token, token)
 
     def test_set_context_is_root_no_cartouche(self):
         context = self._makeContext()
@@ -209,6 +221,7 @@ class ConfirmedRegistrationsTests(_RegistrationsBase, unittest.TestCase):
                     password='password',
                     security_question='question',
                     security_answer='answer',
+                    token='token',
                    )
 
         cartouche = context.cartouche
@@ -227,6 +240,7 @@ class ConfirmedRegistrationsTests(_RegistrationsBase, unittest.TestCase):
                     password='password',
                     security_question='question',
                     security_answer='answer',
+                    token='token',
                    )
 
         self._verifyInfo(cartouche.by_uuid['UUID'])
@@ -246,6 +260,7 @@ class ConfirmedRegistrationsTests(_RegistrationsBase, unittest.TestCase):
                     password='password',
                     security_question='question',
                     security_answer='answer',
+                    token='token',
                    )
 
         self._verifyInfo(cartouche.by_uuid['UUID'])
