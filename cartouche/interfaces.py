@@ -16,10 +16,13 @@ from zope.interface import Interface
 
 
 class IRoot(Interface):
-    pass
+    """ Marker interface for the object at the traversal root.
+    """
 
 
 class ICartouche(Interface):
+    """ Data container, held as an attribute of the root.
+    """
     pending = Attribute(u'Pending registrations, keyed by email')
     by_uuid = Attribute(u'Confirmed registrations, keyed by UUID')
     by_email = Attribute(u'Index, email -> UUID')
@@ -41,11 +44,15 @@ class IAutoLogin(Interface):
         """
 
 class IPendingRegistrationInfo(Interface):
+    """ Model schema of objects tracking pending registrations.
+    """
     email = Attribute(u'Registered e-mail address')
     token = Attribute(u'Token generated at registration')
 
 
 class IRegistrationInfo(Interface):
+    """ Model schema of objects tracking confirmed registrations.
+    """
     uuid = Attribute(u'Opaque identifier')
     email = Attribute(u'Registered e-mail address')
     password = Attribute(u'Hashed password')
@@ -55,10 +62,10 @@ class IRegistrationInfo(Interface):
 
 
 class IRegistrations(Interface):
-    """ Adapter interface:  store / retrieve pending registration info.
+    """ Adapter interface:  store / retrieve registration info by key.
     """
     def __iter__():
-        """ Return an iterator over our items.
+        """ Return an iterator over our items, (key, info).
         """
 
     def set(key, **kw):
