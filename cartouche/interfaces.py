@@ -51,6 +51,7 @@ class IRegistrationInfo(Interface):
     password = Attribute(u'Hashed password')
     security_question = Attribute(u'Security question')
     security_answer = Attribute(u'Answer to security question')
+    token = Attribute(u'Token generated for password reset')
 
 
 class IRegistrations(Interface):

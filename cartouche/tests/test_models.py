@@ -97,9 +97,11 @@ class RegistrationInfoTests(unittest.TestCase):
                  password='password',
                  security_question='question',
                  security_answer='answer',
+                 token='token'
                 ):
         return self._getTargetClass()(uuid, email, login, password,   
-                                      security_question, security_answer)
+                                      security_question, security_answer,
+                                      token)
 
     def test_class_conforms_to_IRegistrationInfo(self):
         from zope.interface.verify import verifyClass
