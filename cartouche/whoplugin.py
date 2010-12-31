@@ -25,10 +25,16 @@ from cartouche.persistence import ConfirmedRegistrations
 
 class WhoPlugin(object):
     implements(IAuthenticator)
+    _finder = None
 
     def __init__(self, zodb_uri):
-        self._finder = PersistentApplicationFinder(zodb_uri, appmaker)
+        self._zodb_uri = zodb_uri
         self._pwd_mgr = SSHAPasswordManager()
+
+    def _getFinder(self):
+        if self._finder is None:
+            self._finder = PersistentApplicationFinder(self._zodb_uri, appmaker)
+        return self._finder
 
     def authenticate(self, environ, identity):
         """ See IAuthenticator.
@@ -42,9 +48,12 @@ class WhoPlugin(object):
             confirmed = registry.queryAdapter(context, IRegistrations,
                                               name='confirmed')
             if confirmed is None:
-                app = self._finder(environ)
+                app = self._getFinder()(environ)
                 confirmed = ConfirmedRegistrations(app)
             record = confirmed.get_by_login(login)
             if record and self._pwd_mgr.checkPassword(record.password,
                                                       password):
                 return record.uuid
+
+def make_plugin(zodb_uri):
+    return WhoPlugin(zodb_uri)

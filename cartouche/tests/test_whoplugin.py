@@ -120,16 +120,14 @@ class WhoPluginTests(unittest.TestCase):
         self._registerConfirmed()
         environ = {}
         credentials = {'login': 'login', 'password': 'bogus'}
-        plugin = self._makeOne()
-        del plugin._finder # Don't fall back!
+        plugin = self._makeOne('file:///dev/null') # Don't fall back!
         self.assertEqual(plugin.authenticate(environ, credentials), None)
 
     def test_hit_w_configured_IRegistrations_adapter(self):
         self._registerConfirmed()
         environ = {}
         credentials = {'login': 'login', 'password': 'password'}
-        plugin = self._makeOne()
-        del plugin._finder # Don't fall back!
+        plugin = self._makeOne('file:///dev/null') # Don't fall back!
         self.assertEqual(plugin.authenticate(environ, credentials), 'UUID')
 
     def test_miss_w_conn_in_environ(self):
