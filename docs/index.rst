@@ -11,6 +11,7 @@ Contents:
    :maxdepth: 2
 
    configuration
+   api
 
 Indices and tables
 ==================
