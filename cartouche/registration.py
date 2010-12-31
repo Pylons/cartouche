@@ -30,11 +30,9 @@ from deform.widget import PasswordWidget
 from deform.widget import SelectWidget
 from pyramid.renderers import get_renderer
 from repoze.sendmail.interfaces import IMailDelivery
-from repoze.who.api import get_api
 from webob.exc import HTTPForbidden
 from webob.exc import HTTPFound
 from webob.exc import HTTPUnauthorized
-from zope.interface import directlyProvides
 from zope.password.password import SSHAPasswordManager
 
 from cartouche.interfaces import IAutoLogin
@@ -119,18 +117,6 @@ class EditAccount(Schema):
     password = SchemaNode(String(),
                           widget=CheckedPasswordWidget())
     security = SecurityQuestion()
-
-
-def autoLoginViaAuthTkt(userid, request):
-    api = get_api(request.environ)
-    if api is None:
-        raise ValueError("Couldn't find / create repoze.who API object")
-    credentials = {'repoze.who.plugins.auth_tkt.userid': userid}
-    settings = request.registry.settings
-    plugin_id = settings.get('cartouche.auto_login_identifier', 'auth_tkt')
-    identity, headers = api.login(credentials, plugin_id)
-    return headers
-directlyProvides(autoLoginViaAuthTkt, IAutoLogin)
 
 
 REGISTRATION_EMAIL = """

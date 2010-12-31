@@ -352,8 +352,8 @@ class Test_reset_password(_Base, unittest.TestCase):
         return reset_password_view(context, request)
 
     def _registerAutoLogin(self):
-        from cartouche.registration import autoLoginViaAuthTkt
-        self.config.registry.registerUtility(autoLoginViaAuthTkt)
+        from cartouche.util import autoLoginViaWhoAPI
+        self.config.registry.registerUtility(autoLoginViaWhoAPI)
 
     def test_GET(self):
         import re

@@ -101,46 +101,8 @@ class _Base(object):
         return by_uuid, by_login, by_email
 
     def _registerAutoLogin(self):
-        from cartouche.registration import autoLoginViaAuthTkt
-        self.config.registry.registerUtility(autoLoginViaAuthTkt)
-
-
-class Test_autoLoginViaAuthTkt(_Base, unittest.TestCase):
-
-    def _callFUT(self, userid='testing', request=None):
-        from cartouche.registration import autoLoginViaAuthTkt
-        if request is None:
-            request = self._makeRequest()
-        return autoLoginViaAuthTkt(userid, request)
-
-    def test_no_API_in_environ(self):
-        self.assertRaises(ValueError, self._callFUT)
-
-    def test_w_API_in_environ(self):
-        HEADERS = [('Faux-Cookie', 'gingersnap')]
-        api = FauxAPI(HEADERS)
-        request = self._makeRequest(environ={'repoze.who.api': api})
-
-        result = self._callFUT('testing', request)
-
-        self.assertEqual(result, HEADERS)
-        self.assertEqual(api._called_with[0],
-                         {'repoze.who.plugins.auth_tkt.userid': 'testing'})
-        self.assertEqual(api._called_with[1], 'auth_tkt')
-
-    def test_w_API_in_environ_w_plugin_id_override(self):
-        HEADERS = [('Faux-Cookie', 'gingersnap')]
-        settings = self.config.registry.settings
-        settings['cartouche.auto_login_identifier'] = 'test'
-        api = FauxAPI(HEADERS)
-        request = self._makeRequest(environ={'repoze.who.api': api})
-
-        result = self._callFUT('testing', request)
-
-        self.assertEqual(result, HEADERS)
-        self.assertEqual(api._called_with[0],
-                         {'repoze.who.plugins.auth_tkt.userid': 'testing'})
-        self.assertEqual(api._called_with[1], 'test')
+        from cartouche.util import autoLoginViaWhoAPI
+        self.config.registry.registerUtility(autoLoginViaWhoAPI)
 
 
 class Test_register_view(_Base, unittest.TestCase):

@@ -203,9 +203,9 @@ global ``PasteDeploy`` configuration file:
 ``cartouche.auto_login_identifier``
     The ID of the ``repoze.who`` authenticator plugin used to auto-login
     users after the confirm registration or password reset via an e-mailed
-    token.  Used only by the :func:`autoLoginViaAuthTkt` utility, registered
-    for the :class:`cartouche.interfaces.IAutoLogin` interface.
-    *Default:  auth_tkt*
+    token.  Used only by the :func:`cartouche.util.autoLoginViaWhoAPI`
+    utility, registered for the :class:`cartouche.interfaces.IAutoLogin`
+    interface.  *Default:  auth_tkt*
 
 
 Utilities
@@ -251,7 +251,7 @@ registration or password reset token.
 
 By default, :mod:`cartouche` does *not* log the user in;  instead, it e-mails
 the user a random password.  If you are using :mod:`repoze.who`, you may wish
-to configure :func:`cartouche.registration.autoLoginViaAuthTkt` to enable this
+to configure :func:`cartouche.util.autoLoginViaWhoAPI` to enable this
 feature.
 
 E.g., via imperative Python code:
@@ -259,8 +259,8 @@ E.g., via imperative Python code:
 .. code-block:: python
 
    from cartouche.interfaces import IAutoLogin
-   from cartouche.registration import autoLoginViaAuthTkt
-   config.registerUtility(autoLoginViaAuthTkt, IAutoLogin)
+   from cartouche.util import autoLoginViaWhoAPI
+   config.registerUtility(autoLoginViaWhoAPI, IAutoLogin)
     
 or ZCML:
 
@@ -268,7 +268,7 @@ or ZCML:
 
    <utility
         provides="cartouche.interfaces.IAutoLogin"
-        component="cartouche.registration.autoLoginViaAuthTkt"/>
+        component="cartouche.util.autoLoginViaWhoAPI"/>
 
 To implement your own auto-login utility, you must register a function
 providing the :class:`cartouche.interfaces.IAutoLogin` interface,
@@ -303,7 +303,7 @@ or ZCML:
 
    <utility
         provides="cartouche.interfaces.IAutoLogin"
-        component="cartouche.registration.autoLoginViaAuthTkt"/>
+        component="yourpackage.utilities.myTokenGenerator"/>
 
 
 Adapters
