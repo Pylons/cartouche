@@ -1,3 +1,0 @@
-<input id="${field.oid}" type="hidden" name="${field.name}"
-       value="${cstruct}" />
-<p>${cstruct}</p>

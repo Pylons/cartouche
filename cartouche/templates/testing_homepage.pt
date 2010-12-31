@@ -11,9 +11,6 @@
       <a href="/edit_account.html"
       >Update your login, password, and security question</a></li>
      <li>
-      <a href="/edit_profile.html"
-      >Update your profile</a></li>
-     <li>
       <a href="/logout.html"
       >Log out</a></li>
     </ul>
