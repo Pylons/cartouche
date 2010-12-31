@@ -107,6 +107,7 @@ def recover_account_view(context, request):
         confirmed = ConfirmedRegistrations(context)
     login_url = view_url(context, request, 'login_url', 'login.html')
     registry = request.registry
+    message = request.GET.get('message')
 
     if 'recover' in request.POST:
         try:
@@ -123,9 +124,9 @@ def recover_account_view(context, request):
                                          'login_url': login_url}
                 delivery = registry.queryUtility(IMailDelivery,
                                                  default=localhost_mta)
-                message = Message()
-                message.set_payload(body)
-                delivery.send(from_addr, [email], message)
+                email_message = Message()
+                email_message.set_payload(body)
+                delivery.send(from_addr, [email], email_message)
             #else: # XXX not reporting lookup errors for now
             return HTTPFound(location=login_url)
 
@@ -135,6 +136,7 @@ def recover_account_view(context, request):
             'reset_password_url': view_url(context, request,
                                            'reset_password_url',
                                            'reset_password.html'),
+            'message': message,
            }
 
 

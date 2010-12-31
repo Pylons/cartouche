@@ -123,12 +123,12 @@ class Test_login(_Base, unittest.TestCase):
                          'http://example.com/reset.html')
 
     def test_GET_w_message(self):
-        request = self._makeRequest(GET={'message': 'Foo'})
+        request = self._makeRequest(GET={'message': 'MESSAGE'})
         mtr = self.config.testing_add_template('templates/main.pt')
 
         info = self._callFUT(request=request)
 
-        self.assertEqual(info['message'], 'Foo')
+        self.assertEqual(info['message'], 'MESSAGE')
 
     def test_POST_w_unknown_login(self):
         POST = {'login_name': 'unknown',
@@ -233,6 +233,15 @@ class Test_recover_account(_Base, unittest.TestCase):
         self.assertEqual(inputs, ['email'])
         self.assertEqual(info['reset_password_url'],
                          'http://example.com/reset_password.html')
+        self.assertEqual(info['message'], None)
+
+    def test_GET_w_message(self):
+        mtr = self.config.testing_add_template('templates/main.pt')
+        request = self._makeRequest(GET={'message': 'MESSAGE'})
+
+        info = self._callFUT(request=request)
+
+        self.assertEqual(info['message'], 'MESSAGE')
 
     def test_POST_w_errors(self):
         import re
@@ -367,7 +376,7 @@ class Test_reset_password(_Base, unittest.TestCase):
         import re
         INPUT = re.compile('<input.*name="(?P<name>\w+)"', re.MULTILINE)
         mtr = self.config.testing_add_template('templates/main.pt')
-        request = self._makeRequest(GET={'message': 'TEST_MESSAGE'})
+        request = self._makeRequest(GET={'message': 'MESSAGE'})
 
         info = self._callFUT(request=request)
 
@@ -379,7 +388,7 @@ class Test_reset_password(_Base, unittest.TestCase):
         self.assertEqual(inputs, ['login_name', 'token' ])
         self.assertEqual(info['recover_account_url'],
                          'http://example.com/recover_account.html')
-        self.assertEqual(info['message'], 'TEST_MESSAGE')
+        self.assertEqual(info['message'], 'MESSAGE')
 
     def test_POST_w_errors(self):
         import re
