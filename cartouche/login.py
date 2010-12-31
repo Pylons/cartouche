@@ -32,6 +32,7 @@ from cartouche.interfaces import IRegistrations
 from cartouche.persistence import ConfirmedRegistrations
 from cartouche.util import getRandomToken
 from cartouche.util import localhost_mta
+from cartouche.util import sendGeneratedPassword
 from cartouche.util import view_url
 
 class Login(Schema):
@@ -125,6 +126,7 @@ def recover_account_view(context, request):
                 delivery = registry.queryUtility(IMailDelivery,
                                                  default=localhost_mta)
                 email_message = Message()
+                email_message['Subject'] = 'Account recovery'
                 email_message.set_payload(body)
                 delivery.send(from_addr, [email], email_message)
             #else: # XXX not reporting lookup errors for now
@@ -205,6 +207,7 @@ def reset_password_view(context, request):
                 delivery = registry.queryUtility(IMailDelivery,
                                                  default=localhost_mta)
                 message = Message()
+                message['Subject'] = 'Password reset confirmation'
                 message.set_payload(body)
                 delivery.send(from_addr, [record.email], message)
                 #else: # XXX not reporting lookup errors for now
@@ -222,16 +225,19 @@ def reset_password_view(context, request):
                                   security_answer=record.security_answer,
                                   token=None,     # clear it
                                  )
-                    auto_login = request.registry.queryUtility(IAutoLogin)
-                    if auto_login is not None:
-                        headers = auto_login(record.uuid, request)
-                    else:
-                        headers = ()
                     after_reset_url = view_url(context, request,
                                                'after_reset_url',
                                                'edit_account.html',
                                               )
-                    return HTTPFound(location=after_reset_url, headers=headers)
+                    auto_login = request.registry.queryUtility(IAutoLogin)
+                    if auto_login is not None:
+                        headers = auto_login(record.uuid, request)
+                        return HTTPFound(location=after_reset_url,
+                                         headers=headers)
+                    else:
+                        # TODO:  generate random password and send e-mail.
+                        sendGeneratedPassword(request, record.uuid, confirmed)
+                        return HTTPFound(location=after_reset_url)
 
     main_template = get_renderer('templates/main.pt')
     return {'main_template': main_template.implementation(),

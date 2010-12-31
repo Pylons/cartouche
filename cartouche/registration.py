@@ -41,6 +41,7 @@ from cartouche.persistence import ConfirmedRegistrations
 from cartouche.persistence import PendingRegistrations
 from cartouche.util import getRandomToken
 from cartouche.util import localhost_mta
+from cartouche.util import sendGeneratedPassword
 from cartouche.util import view_url
 
 
@@ -163,6 +164,7 @@ def register_view(context, request):
             body = REGISTRATION_EMAIL % {'token': token,
                                          'confirmation_url': confirmation_url}
             message = Message()
+            message['Subject'] = 'Site registration confirmation'
             message.set_payload(body)
             delivery.send(from_addr, [email], message)
             return HTTPFound(location=confirmation_url)
@@ -216,21 +218,27 @@ def confirm_registration_view(context, request):
                 confirmed = ConfirmedRegistrations(context)
             pending.remove(email)
             uuid = getRandomToken(request)
-            confirmed.set(uuid, email=email, login=email, password=None,
-                          security_question=None, security_answer=None)
+            confirmed.set(uuid,
+                          email=email,
+                          login=email,
+                          password=None,
+                          security_question=None,
+                          security_answer=None,
+                          token=None,
+                         )
             info = confirmed.get(uuid)
-
-            auto_login = request.registry.queryUtility(IAutoLogin)
-            if auto_login is not None:
-                headers = auto_login(uuid, request)
-            else:
-                headers = ()
-
             after_confirmation_url = view_url(context, request,
                                               'after_confirmation_url',
                                               'edit_account.html',
                                              )
-            return HTTPFound(location=after_confirmation_url, headers=headers)
+            auto_login = request.registry.queryUtility(IAutoLogin)
+            if auto_login is not None:
+                headers = auto_login(uuid, request)
+                return HTTPFound(location=after_confirmation_url,
+                                 headers=headers)
+            else:
+                sendGeneratedPassword(request, uuid, confirmed)
+                return HTTPFound(location=after_confirmation_url)
     else:
         email = request.GET.get('email')
         if email is None:

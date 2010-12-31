@@ -309,6 +309,8 @@ class Test_recover_account(_Base, unittest.TestCase):
         self.assertEqual(response.location, login_url)
         self.assertEqual(delivery._sent[0], FROM_EMAIL)
         self.assertEqual(list(delivery._sent[1]), [TO_EMAIL])
+        self.assertEqual(delivery._sent[2]['Subject'],
+                         'Account recovery')
         self.failUnless(login_url in delivery._sent[2].get_payload())
 
     def test_POST_email_hit_w_login_url_override(self):
@@ -338,6 +340,8 @@ class Test_recover_account(_Base, unittest.TestCase):
         self.assertEqual(response.location, login_url)
         self.assertEqual(delivery._sent[0], FROM_EMAIL)
         self.assertEqual(list(delivery._sent[1]), [TO_EMAIL])
+        self.assertEqual(delivery._sent[2]['Subject'],
+                         'Account recovery')
         self.failUnless(login_url in delivery._sent[2].get_payload())
 
 
@@ -457,6 +461,8 @@ class Test_reset_password(_Base, unittest.TestCase):
         self.assertEqual(response.location, reset_url)
         self.assertEqual(delivery._sent[0], FROM_EMAIL)
         self.assertEqual(list(delivery._sent[1]), [TO_EMAIL])
+        self.assertEqual(delivery._sent[2]['Subject'],
+                         'Password reset confirmation')
         self.failUnless(reset_url in delivery._sent[2].get_payload())
 
     def test_POST_w_valid_login_w_token_mismatch(self):
@@ -517,13 +523,17 @@ class Test_reset_password(_Base, unittest.TestCase):
         self.assertEqual(api._called_with[0],
                          {'repoze.who.plugins.auth_tkt.userid': 'UUID'})
         for key, value in api.LOGIN_HEADERS:
-            self.failUnless(response.headers[key] == value)
+            self.assertEqual(response.headers[key], value)
 
     def test_POST_w_valid_login_w_token_match_no_auto_login(self):
+        from repoze.sendmail.interfaces import IMailDelivery
         from webob.exc import HTTPFound
         FROM_EMAIL = 'admin@example.com'
         TO_EMAIL = 'phred@example.com'
         POST = {'login_name': 'login', 'token': 'token', 'reset': ''}
+        self.config.registry.settings['cartouche.from_addr'] = FROM_EMAIL
+        delivery = DummyMailer()
+        self.config.registry.registerUtility(delivery, IMailDelivery)
         by_uuid, by_login, by_email = self._registerConfirmed()
         by_uuid['UUID'] = Dummy(uuid='UUID',
                                 email=TO_EMAIL,
@@ -547,7 +557,14 @@ class Test_reset_password(_Base, unittest.TestCase):
         self.assertEqual(response.location, after_reset_url)
         self.failIf('_called_with' in api.__dict__)
         for key, value in api.LOGIN_HEADERS:
-            self.failUnless(response.headers.get(key) is None)
+            self.assertEqual(response.headers.get(key), None)
+
+        self.assertEqual(delivery._sent[0], FROM_EMAIL)
+        self.assertEqual(list(delivery._sent[1]), [TO_EMAIL])
+        self.assertEqual(delivery._sent[2]['Subject'],
+                         'Your new site password')
+        payload = delivery._sent[2].get_payload()
+        self.failUnless('Your new password is:' in payload)
 
 
 

@@ -133,6 +133,68 @@ class Test_autoLoginViaAuthTkt(_Base, unittest.TestCase):
         self.assertEqual(api._called_with[1], 'test')
 
 
+class Test_sendGeneratedPassword(_Base, unittest.TestCase):
+
+    def _callFUT(self, request=None, userid='testing', confirmed=None):
+        from cartouche.util import sendGeneratedPassword
+        if request is None:
+            request = self._makeRequest()
+        if confirmed is None:
+            confirmed = DummyConfirmed()
+        return sendGeneratedPassword(request, userid, confirmed)
+
+    def test_miss(self):
+        self.assertRaises(KeyError, self._callFUT, userid='nonesuch')
+
+    def test_hit(self):
+        import re
+        from repoze.sendmail.interfaces import IMailDelivery
+        from zope.password.password import SSHAPasswordManager
+        GENERATED = re.compile(r'Your new password is:\s+(?P<password>[^\s]+)',
+                    re.MULTILINE)
+        RANDOM_PATTERN = re.compile(r'[A-Za-z0-9]{6,8}'
+                                     '[~!@#$%^&*]'
+                                     '[A-Za-z0-9]{6,8}'
+                                   )
+        FROM_EMAIL = 'admin@example.com'
+        TO_EMAIL = 'phred@example.com'
+        self.config.registry.settings['cartouche.from_addr'] = FROM_EMAIL
+        delivery = DummyMailer()
+        self.config.registry.registerUtility(delivery, IMailDelivery)
+        confirmed = DummyConfirmed()
+        confirmed.set('UUID',
+                      email=TO_EMAIL,
+                      login='phred',
+                      password='old_password',
+                      security_question='question',
+                      security_answer='answer',
+                      token=None,
+                     )
+
+        self._callFUT(userid='UUID', confirmed=confirmed)
+
+        record = confirmed.get('UUID')
+        self.assertEqual(record.uuid, 'UUID')
+        self.assertEqual(record.email, TO_EMAIL)
+        self.assertEqual(record.login, 'phred')
+        password = record.password
+        self.assertNotEqual(password, 'old_password')
+        self.failUnless(password.startswith('{SSHA}'))
+        self.assertEqual(record.security_question, 'question')
+        self.assertEqual(record.security_answer, 'answer')
+        self.assertEqual(record.token, None)
+        login_url = 'http://example.com/login.html'
+        self.assertEqual(delivery._sent[0], FROM_EMAIL)
+        self.assertEqual(list(delivery._sent[1]), [TO_EMAIL])
+        payload = delivery._sent[2].get_payload()
+        self.failUnless(login_url in payload)
+        found = GENERATED.search(payload)
+        generated = found.group('password') 
+        pwd_mgr = SSHAPasswordManager()
+        self.failUnless(pwd_mgr.checkPassword(password, generated))
+        self.failUnless(RANDOM_PATTERN.match(generated))
+
+
 class DummyTokenGenerator:
     def getToken(self):
         return 'RANDOM'
@@ -144,3 +206,26 @@ class FauxAPI:
     def login(self, credentials, identifier_name=None):
         self._called_with = (credentials, identifier_name)
         return 'testing', self._headers
+
+
+class Dummy:
+    def __init__(self, **kw):
+        self.__dict__.update(kw)
+
+
+class DummyConfirmed:
+    def __init__(self, records=None):
+        if records is None:
+            records = {}
+        self._records = records
+    def get(self, uuid, default=None):
+        return self._records.get(uuid, default)
+    def set(self, uuid, **kw):
+        self._records[uuid] = Dummy(uuid=uuid, **kw)
+
+
+class DummyMailer:
+    _sent = None
+
+    def send(self, from_addr, to_addrs, message):
+        self._sent = (from_addr, to_addrs, message)

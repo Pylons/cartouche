@@ -21,9 +21,9 @@ Registration
 
       * Make confirmation URL configurable via Pyramid ``settings``.
 
-- [/j When token confirmed, add e-mail-confirmed user to ``ZODB`` user store.
+- [Xj When token confirmed, add e-mail-confirmed user to ``ZODB`` user store.
 
-      o If an ``IAutoLogin`` utility is configured, use it to auto-login the
+      * If an ``IAutoLogin`` utility is configured, use it to auto-login the
         user;  otherwise,  generate a random password and e-mail it to the
         user.
 
@@ -38,7 +38,7 @@ Update Account Login
 
       * Allow user to pick login name, defaulting to e-mail address.
 
-      * *If* the existing password is set, query for it.
+      o *If* the existing password is set, **require** it and check it.
 
       * Allow the user to enter and confirm a password.
 
@@ -90,7 +90,7 @@ Account Recovery
 Password Reset
 --------------
 
-- [/] Prompt the user for their login name.
+- [X] Prompt the user for their login name.
 
       * On POST without token, generate and seve a quasi-random token
         on the user's record.  Render the form showing the token and
@@ -103,7 +103,7 @@ Password Reset
 
       * On POST with mismatched token, display an error.
 
-      o On POST with the matching token, if an ``IAutoLogin`` utility is
+      * On POST with the matching token, if an ``IAutoLogin`` utility is
         configured, use it to auto-login the user;  otherwise, generate a
         random password and e-mail it to the user.
 

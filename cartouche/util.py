@@ -11,6 +11,11 @@
 # FITNESS FOR A PARTICULAR PURPOSE
 #
 ##############################################################################
+from email.message import Message
+from random import choice
+from random import randrange
+from string import digits
+from string import letters
 from urllib import urlencode
 from urlparse import parse_qsl
 from urlparse import urljoin
@@ -21,8 +26,10 @@ from uuid import uuid4
 from pyramid.url import model_url
 from repoze.sendmail.delivery import DirectMailDelivery
 from repoze.sendmail.mailer import SMTPMailer
+from repoze.sendmail.interfaces import IMailDelivery
 from repoze.who.api import get_api
 from zope.interface import directlyProvides
+from zope.password.password import SSHAPasswordManager
 
 from cartouche.interfaces import IAutoLogin
 from cartouche.interfaces import ITokenGenerator
@@ -56,13 +63,61 @@ def getRandomToken(request):
     return str(uuid4())
 
 
-def autoLoginViaWhoAPI(userid, request):
+def autoLoginViaWhoAPI(uuid, request):
     api = get_api(request.environ)
     if api is None:
         raise ValueError("Couldn't find / create repoze.who API object")
-    credentials = {'repoze.who.plugins.auth_tkt.userid': userid}
+    credentials = {'repoze.who.plugins.auth_tkt.userid': uuid}
     settings = request.registry.settings
     plugin_id = settings.get('cartouche.auto_login_identifier', 'auth_tkt')
     identity, headers = api.login(credentials, plugin_id)
     return headers
 directlyProvides(autoLoginViaWhoAPI, IAutoLogin)
+
+
+PASSWORD_EMAIL = """\
+Your new password is:
+
+  %(password)s
+
+You can login to the site at the following URL:
+
+  %(login_url)s
+"""
+
+_SYMBOLS = '~!@#$%^&*'
+_CHARS = letters + digits
+
+def _randomPassword():
+    result = []
+    for _ in range(randrange(6, 8)):
+        result.append(choice(_CHARS))
+    result.append(choice(_SYMBOLS))
+    for _ in range(randrange(6, 8)):
+        result.append(choice(_CHARS))
+    return ''.join(result)
+
+def sendGeneratedPassword(request, uuid, confirmed):
+    record = confirmed.get(uuid)
+    if record is None:
+        raise KeyError
+    pwd_mgr = SSHAPasswordManager()
+    new_password = _randomPassword()
+    encoded = pwd_mgr.encodePassword(new_password)
+    confirmed.set(uuid,
+                  email=record.email,
+                  login=record.login,
+                  password=encoded,
+                  security_question=record.security_question,
+                  security_answer=record.security_answer,
+                  token=record.token,
+                 )
+    from_addr = request.registry.settings['cartouche.from_addr']
+    delivery = request.registry.queryUtility(IMailDelivery,
+                                             default=localhost_mta)
+    login_url = view_url(request.context, request, 'login_url', 'login.html')
+    body = PASSWORD_EMAIL % {'password': new_password, 'login_url': login_url}
+    message = Message()
+    message['Subject'] = 'Your new site password'
+    message.set_payload(body)
+    delivery.send(from_addr, [record.email], message)

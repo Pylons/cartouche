@@ -353,16 +353,21 @@ class Test_confirm_registration_view(_Base, unittest.TestCase):
 
     def test_POST_w_token_hit_no_auto_login(self):
         from webob.exc import HTTPFound
-        EMAIL = 'phred@example.com'
-        POST = {'email': EMAIL,
+        from repoze.sendmail.interfaces import IMailDelivery
+        FROM_EMAIL = 'admin@example.com'
+        TO_EMAIL = 'phred@example.com'
+        POST = {'email': TO_EMAIL,
                 'token': 'TOKEN',
                 'confirm': '',
                }
         pending = self._registerPendingRegistrations()
-        pending[EMAIL] = Dummy(token='TOKEN')
+        pending[TO_EMAIL] = Dummy(token='TOKEN')
         by_uuid, by_login, by_email = self._registerConfirmed()
         HEADERS = [('Faux-Cookie', 'gingersnap')]
         api = FauxAPI(HEADERS)
+        self.config.registry.settings['cartouche.from_addr'] = FROM_EMAIL
+        delivery = DummyMailer()
+        self.config.registry.registerUtility(delivery, IMailDelivery)
         context = self._makeContext()
         request = self._makeRequest(POST=POST,
                                     environ={'repoze.who.api': api})
@@ -375,15 +380,23 @@ class Test_confirm_registration_view(_Base, unittest.TestCase):
         self.assertEqual(response.location,
                          'http://example.com/edit_account.html')
 
-        self.failIf(EMAIL in pending)
-        uuid = by_email[EMAIL]
-        self.assertEqual(by_login[EMAIL], uuid)
-        self.assertEqual(by_uuid[uuid].email, EMAIL)
-        self.assertEqual(by_uuid[uuid].login, EMAIL)
-        self.assertEqual(by_uuid[uuid].password, None)
+        self.failIf(TO_EMAIL in pending)
+        uuid = by_email[TO_EMAIL]
+        self.assertEqual(by_login[TO_EMAIL], uuid)
+        self.assertEqual(by_uuid[uuid].email, TO_EMAIL)
+        self.assertEqual(by_uuid[uuid].login, TO_EMAIL)
+        self.failUnless(by_uuid[uuid].password.startswith('{SSHA}'))
         self.assertEqual(by_uuid[uuid].security_question, None)
         self.assertEqual(by_uuid[uuid].security_answer, None)
+        self.assertEqual(by_uuid[uuid].token, None)
         self.failIf('_called_with' in api.__dict__)
+
+        self.assertEqual(delivery._sent[0], FROM_EMAIL)
+        self.assertEqual(list(delivery._sent[1]), [TO_EMAIL])
+        self.assertEqual(delivery._sent[2]['Subject'],
+                         'Your new site password')
+        payload = delivery._sent[2].get_payload()
+        self.failUnless('Your new password is:' in payload)
 
     def test_POST_w_token_hit_no_after_confirmation_url_setting(self):
         from webob.exc import HTTPFound
