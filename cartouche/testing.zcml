@@ -1,93 +1,45 @@
 <configure xmlns="http://pylonshq.com/pyramid">
 
- <!-- this must be included for the view declarations to work -->
- <include package="pyramid.includes" />
+  <!-- this must be included for the view declarations to work -->
+  <include package="pyramid.includes" />
 
- <utility provides="repoze.sendmail.interfaces.IMailDelivery"
-          factory=".testing.FauxMailDelivery" />
+  <!-- include the standard views, resources -->
+  <include package="cartouche" />
 
- <utility provides="cartouche.interfaces.IAutoLogin"
-          component="cartouche.registration.autoLoginViaAuthTkt" />
+  <!-- "deliver" mail by printing to the console -->
+  <utility provides="repoze.sendmail.interfaces.IMailDelivery"
+           factory=".testing.FauxMailDelivery" />
 
- <adapter provides="cartouche.interfaces.IRegistrations"
-          name="pending"
-          for="*"
-          factory=".testing.FauxPendingRegistrations" />
+  <!-- enable auto-login to allowing editing after confirming
+       registration / password reset. -->
+  <utility provides="cartouche.interfaces.IAutoLogin"
+           component="cartouche.registration.autoLoginViaAuthTkt" />
 
- <adapter provides="cartouche.interfaces.IRegistrations"
-          name="confirmed"
-          for="*"
-          factory=".testing.FauxConfirmedRegistrations" />
+  <!-- Use module globals for storing pending registration info. -->
+  <adapter provides="cartouche.interfaces.IRegistrations"
+           name="pending"
+           for="*"
+           factory=".testing.FauxPendingRegistrations" />
 
- <view
-    context=".models.Root"
-    view=".testing.homepage_view"
-    renderer="templates/testing_homepage.pt"
-    />
+  <!-- Use module globals for storing confirmed registration info. -->
+  <adapter provides="cartouche.interfaces.IRegistrations"
+           name="confirmed"
+           for="*"
+           factory=".testing.FauxConfirmedRegistrations" />
 
- <view
-    context=".models.Root"
-    name="debug.html"
-    view=".testing.debug_view"
-    renderer="templates/testing_debug.pt"
-    />
-
- <view
-    context=".models.Root"
-    name="register.html"
-    view=".registration.register_view"
-    renderer="templates/register.pt"
-    />
-
- <view
-    context=".interfaces.IRoot"
-    name="confirm_registration.html"
-    view=".registration.confirm_registration_view"
-    renderer="templates/register.pt"
-    />
-
- <view
-    context=".interfaces.IRoot"
-    name="edit_account.html"
-    view=".registration.edit_account_view"
-    renderer="templates/register.pt"
-    />
-
- <view
-    context=".interfaces.IRoot"
-    name="login.html"
-    view=".login.login_view"
-    renderer="templates/login.pt"
-    />
-
- <view
-    context=".interfaces.IRoot"
-    name="logout.html"
-    view=".login.logout_view"
-    />
-
- <view
-    context=".interfaces.IRoot"
-    name="recover_account.html"
-    view=".login.recover_account_view"
-    renderer="templates/login.pt"
-    />
-
- <view
-    context=".interfaces.IRoot"
-    name="reset_password.html"
-    view=".login.reset_password_view"
-    renderer="templates/login.pt"
-    />
-
-  <static
-     name="static"
-     path="static"
+  <!-- Simple homepage for testing. -->
+  <view
+     context=".models.Root"
+     view=".testing.homepage_view"
+     renderer="templates/testing_homepage.pt"
      />
 
-  <static
-     name="deform"
-     path="deform:static"
+  <!-- Dump pending / confirmed registration info for testing. -->
+  <view
+     context=".models.Root"
+     name="debug.html"
+     view=".testing.debug_view"
+     renderer="templates/testing_debug.pt"
      />
 
 </configure>
