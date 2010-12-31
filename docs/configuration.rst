@@ -121,7 +121,7 @@ or via ZCML:
 
 .. code-block:: xml
 
-    <asset to_overide="cartouche:templates/main.pt"
+    <asset to_override="cartouche:templates/main.pt"
            override_with="yourpackage:templates/cartouche_main.pt"/>
 
 
