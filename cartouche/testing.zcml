@@ -10,11 +10,6 @@
   <utility provides="repoze.sendmail.interfaces.IMailDelivery"
            factory=".testing.FauxMailDelivery" />
 
-  <!-- enable auto-login to allowing editing after confirming
-       registration / password reset. -->
-  <utility provides="cartouche.interfaces.IAutoLogin"
-           component="cartouche.registration.autoLoginViaAuthTkt" />
-
   <!-- Use module globals for storing pending registration info. -->
   <adapter provides="cartouche.interfaces.IRegistrations"
            name="pending"
