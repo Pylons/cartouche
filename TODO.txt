@@ -90,7 +90,7 @@ Account Recovery
 Password Reset
 --------------
 
-- [X] Prompt the user for their login name.
+- [/] Prompt the user for their login name.
 
       * On POST without token, generate and seve a quasi-random token
         on the user's record.  Render the form showing the token and
@@ -108,6 +108,8 @@ Password Reset
         random password and e-mail it to the user.
 
       * Make "after reset" URL configurable via Pyramid ``settings``.
+
+      ? Should we tell the user if there is no matching login?
 
 
 ``repoze.who`` Authentication Plugin
