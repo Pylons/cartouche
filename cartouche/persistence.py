@@ -55,6 +55,12 @@ class _RegistrationsBase(object):
             raise KeyError(key)
         del self._getMapping()[key]
 
+    def __iter__(self):
+        cartouche = self._getCartouche()
+        if cartouche is None:
+            return iter(())
+        return iter(self._getMapping().items())
+
     def _getCartouche(self, create=False):
         if self.cartouche is not None:
             return self.cartouche

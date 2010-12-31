@@ -1,0 +1,14 @@
+<configure xmlns="http://pylonshq.com/pyramid">
+
+  <!-- this must be included for the view declarations to work -->
+  <include package="pyramid.includes" />
+
+  <!-- include the standard views, resources -->
+  <include package="cartouche" file="homepage.zcml" />
+
+  <!-- enable auto-login to allowing editing after confirming
+       registration / password reset. -->
+  <utility provides="cartouche.interfaces.IAutoLogin"
+           component="cartouche.util.autoLoginViaWhoAPI" />
+
+</configure>

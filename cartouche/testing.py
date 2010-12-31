@@ -83,6 +83,9 @@ def _factory(_make_info):
                 if email is not None and email in self._store:
                     del self._store[email]
 
+        def __iter__(self):
+            return iter(self._store.items())
+
     return FauxRegistrations
 
 
@@ -123,7 +126,10 @@ class FauxAuthentication(object):
 
 
 def homepage_view(context, request):
-    confirmed = FauxConfirmedRegistrations(context)
+    confirmed = request.registry.queryAdapter(context, IRegistrations,
+                                              name='confirmed')
+    if confirmed is None:
+        confirmed = FauxConfirmedRegistrations(context)
     identity = request.environ.get('repoze.who.identity')
     authenticated_user = login_name = email = None
     if identity is not None:
@@ -142,8 +148,14 @@ def homepage_view(context, request):
            }
 
 def debug_view(context, request):
-    pending = FauxPendingRegistrations(context)
-    confirmed = FauxConfirmedRegistrations(context)
+    pending = request.registry.queryAdapter(context, IRegistrations,
+                                            name='pending')
+    if pending is None:
+        pending = FauxPendingRegistrations(context)
+    confirmed = request.registry.queryAdapter(context, IRegistrations,
+                                              name='confirmed')
+    if confirmed is None:
+        confirmed = FauxConfirmedRegistrations(context)
     identity = request.environ.get('repoze.who.identity')
     authenticated_user = login_name = email = None
     if identity is not None:
@@ -159,6 +171,6 @@ def debug_view(context, request):
             'authenticated_user': authenticated_user,
             'login_name': login_name,
             'email': email,
-            'pending': sorted(pending._store.items()),
-            'confirmed': sorted(confirmed._store.items()),
+            'pending': sorted(pending),
+            'confirmed': sorted(confirmed),
            }

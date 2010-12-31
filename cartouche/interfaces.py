@@ -57,6 +57,10 @@ class IRegistrationInfo(Interface):
 class IRegistrations(Interface):
     """ Adapter interface:  store / retrieve pending registration info.
     """
+    def __iter__():
+        """ Return an iterator over our items.
+        """
+
     def set(key, **kw):
         """ Store registration info for 'key'.
         """
