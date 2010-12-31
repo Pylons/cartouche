@@ -112,7 +112,9 @@ Password Reset
 
 - [X] Enable use of real persistent store for ``repoze.who`` API.
 
-      * Use the ``repoze.who.zodbconn`` in the environment, if present.
+      * Prefer a configured ``IPlugins`` adapter, if available.
+
+      * Else use the ``repoze.who.zodbconn`` in the environment, if present.
 
       * Otherwise, use ``zodb_uri`` from plugin section of who config.
 
@@ -122,7 +124,9 @@ Password Reset
 
 - [_] Implement interface for use within ``pyramid`` sans ``repoze.who``.
 
-      o Use the ``repoze.who.zodbconn`` in the environment, if present.
+      o Prefer a configured ``IPlugins`` adapter, if available.
+
+      o Else use the ``repoze.who.zodbconn`` in the environment, if present.
 
       o Otherwise, use ``cartouche.zodb_uri`` setting.
 

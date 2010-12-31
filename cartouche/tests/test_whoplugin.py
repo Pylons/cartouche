@@ -63,6 +63,28 @@ class WhoPluginTests(unittest.TestCase):
         cartouche.by_uuid['UUID'] = Dummy(uuid='UUID', password=encoded)
         cartouche.by_login['login'] = 'UUID'
 
+    def _registerConfirmed(self):
+        from zope.password.password import SSHAPasswordManager
+        from cartouche.interfaces import IRegistrations
+        pwd_mgr = SSHAPasswordManager()
+        encoded = pwd_mgr.encodePassword('password')
+        class DummyConfirmed:
+            def __init__(self, context):
+                pass
+            def get_by_login(self, login, default=None):
+                if login == 'login':
+                    return Dummy(uuid='UUID', password=encoded)
+                return default
+        self.config.registry.registerAdapter(DummyConfirmed,
+                                             (None,), IRegistrations,
+                                             name='confirmed')
+
+    def _makeFauxConn(self):
+        conn = FauxConnection()
+        app = conn._root['app_root']
+        self._populate(app)
+        return conn
+
     def _makeFilestorage(self):
         import os
         from persistent import Persistent
@@ -80,12 +102,6 @@ class WhoPluginTests(unittest.TestCase):
         transaction.commit()
         db.close()
 
-    def _makeFauxConn(self):
-        conn = FauxConnection()
-        app = conn._root['app_root']
-        self._populate(app)
-        return conn
-
     def test_class_conforms_to_IAuthenticationPlugin(self):
         from zope.interface.verify import verifyClass
         from repoze.who.interfaces import IAuthenticator
@@ -100,26 +116,42 @@ class WhoPluginTests(unittest.TestCase):
         plugin = self._makeOne()
         self.assertEqual(plugin.authenticate({}, {}), None)
 
-    def test_with_bad_credentials_conn_in_environ(self):
+    def test_miss_w_configured_IRegistrations_adapter(self):
+        self._registerConfirmed()
+        environ = {}
+        credentials = {'login': 'login', 'password': 'bogus'}
+        plugin = self._makeOne()
+        del plugin._finder # Don't fall back!
+        self.assertEqual(plugin.authenticate(environ, credentials), None)
+
+    def test_hit_w_configured_IRegistrations_adapter(self):
+        self._registerConfirmed()
+        environ = {}
+        credentials = {'login': 'login', 'password': 'password'}
+        plugin = self._makeOne()
+        del plugin._finder # Don't fall back!
+        self.assertEqual(plugin.authenticate(environ, credentials), 'UUID')
+
+    def test_miss_w_conn_in_environ(self):
         environ = {'repoze.zodbconn.connection': self._makeFauxConn()}
         credentials = {'login': 'login', 'password': 'bogus'}
         plugin = self._makeOne()
         self.assertEqual(plugin.authenticate(environ, credentials), None)
 
-    def test_with_bad_credentials_no_conn_in_environ(self):
+    def test_hit_w_conn_in_environ(self):
+        environ = {'repoze.zodbconn.connection': self._makeFauxConn()}
+        credentials = {'login': 'login', 'password': 'password'}
+        plugin = self._makeOne()
+        self.assertEqual(plugin.authenticate(environ, credentials), 'UUID')
+
+    def test_miss_no_conn_in_environ(self):
         self._makeFilestorage()
         plugin = self._makeOne()
         environ = {}
         credentials = {'login': 'login', 'password': 'bogus'}
         self.assertEqual(plugin.authenticate(environ, credentials), None)
 
-    def test_with_good_credentials_w_conn_in_environ(self):
-        environ = {'repoze.zodbconn.connection': self._makeFauxConn()}
-        credentials = {'login': 'login', 'password': 'password'}
-        plugin = self._makeOne()
-        self.assertEqual(plugin.authenticate(environ, credentials), 'UUID')
-
-    def test_with_good_credentials_no_conn_in_environ(self):
+    def test_hit_no_conn_in_environ(self):
         self._makeFilestorage()
         environ = {}
         credentials = {'login': 'login', 'password': 'password'}

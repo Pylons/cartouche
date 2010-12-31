@@ -12,12 +12,15 @@
 #
 ##############################################################################
 
+from pyramid.threadlocal import get_current_registry
+from pyramid.threadlocal import get_current_request
 from repoze.who.interfaces import IAuthenticator
 from repoze.zodbconn.finder import PersistentApplicationFinder
 from zope.interface import implements
 from zope.password.password import SSHAPasswordManager
 
 from cartouche import appmaker
+from cartouche.interfaces import IRegistrations
 from cartouche.persistence import ConfirmedRegistrations
 
 class WhoPlugin(object):
@@ -33,8 +36,14 @@ class WhoPlugin(object):
         login = identity.get('login')
         password = identity.get('password')
         if login is not None and password is not None:
-            app = self._finder(environ)
-            confirmed = ConfirmedRegistrations(app)
+            request = get_current_request()
+            context = getattr(request, 'context', None)
+            registry = get_current_registry()
+            confirmed = registry.queryAdapter(context, IRegistrations,
+                                              name='confirmed')
+            if confirmed is None:
+                app = self._finder(environ)
+                confirmed = ConfirmedRegistrations(app)
             record = confirmed.get_by_login(login)
             if record and self._pwd_mgr.checkPassword(record.password,
                                                       password):
