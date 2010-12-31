@@ -1,5 +1,5 @@
-:mod:`cartouche`API
-===================
+:mod:`cartouche` API
+====================
 
 Interfaces
 ----------
