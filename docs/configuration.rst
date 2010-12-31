@@ -151,7 +151,7 @@ global ``PasteDeploy`` configuration file:
    cartouche.login_url = /site_login.html
    cartouche.recover_account_url = /account_recovery.html
    cartouche.reset_password_url = /password_reset.html
-   cartouche.auth_tkt_plugin_id = auth_tkt_id
+   cartouche.auto_login_identifier = auth_tkt_id
 
 
 ``cartouche.from_addr``
@@ -180,24 +180,32 @@ global ``PasteDeploy`` configuration file:
     the Pyramid site root URL.  *Default:  /edit_account.html*
 
 ``cartouche.login_url``
-    The URL to which users are redirected after recovering their account
-    or resetting their password.  If a relative URL, it will be prepended with
-    the Pyramid site root URL.  *Default:  /login.html*
+    The URL of the login form.  Users are redirected here after recovering
+    the login name for their accounts.  If a relative URL, it will be
+    prepended with the Pyramid site root URL.  *Default:  /login.html*
 
 ``cartouche.recover_account_url``
-    The URL to which users are directed to recovering their account.
-    If a relative URL, it will be prepended with the Pyramid site root URL.
-    *Default:  /recover_account.html*
+    The URL to which users are directed for recovering the login name
+    for their accounts.  If a relative URL, it will be prepended with the
+    Pyramid site root URL.  *Default:  /recover_account.html*
 
 ``cartouche.reset_password_url``
-    The URL to which users are directed to rest their password.
+    The URL to which users are directed to reset their passwords.
     If a relative URL, it will be prepended with the Pyramid site root URL.
     *Default:  /reset_password.html*
 
-``cartouche.auth_tkt_plugin_id``
-    The ID of the ``auth_tkt`` plugin used to auto-login newly-registered
-    users.  Used only if no utility is registered for the
-    ``cartouche.interfaces.IAutoLogin`` interface.
+``cartouche.after_reset_url``
+    The URL to which users are directed after resetting their passwords.
+    If a relative URL, it will be prepended with the Pyramid site root URL.
+    *Default:  /edit_account.html (only useful if a utility is configured
+    for the :class:`cartouche.interfaces.IAutoLogin` interface)*
+
+``cartouche.auto_login_identifier``
+    The ID of the ``repoze.who`` authenticator plugin used to auto-login
+    users after the confirm registration or password reset via an e-mailed
+    token.  Used only by the :func:`autoLoginViaAuthTkt` utility, registered
+    for the :class:`cartouche.interfaces.IAutoLogin` interface.
+    *Default:  auth_tkt*
 
 
 Utilities
@@ -215,7 +223,7 @@ and password reset.
 By default, :mod:`cartouche` uses an implementation which expects to
 connect to an MTA on port 25 of ``localhost``.
 
-To implement your own auto-login utility, you must register a function
+To implement your own mail delivery utility, you must register a function
 or a class which provides the :class:`repoze.sendmail.IMailDelivery` interface.
 
 E.g., via imperative Python code:
@@ -223,8 +231,8 @@ E.g., via imperative Python code:
 .. code-block:: python
 
    from repoze.sendmail import IMailDelivery
-   from yourpackage.mail import MailDelivery
-   config.registerUtility(factory=MailDelivery, provided=IMailDelivery)
+   from yourpackage.mail import CustomMailDelivery
+   config.registerUtility(factory=CustomMailDelivery, provided=IMailDelivery)
 
 or ZCML:
 
@@ -232,18 +240,19 @@ or ZCML:
 
    <utility
         provides="repoze.sendmail.IMailDelivery"
-        factory="yourpackage.mail.MailDelivery"/>
+        factory="yourpackage.mail.CustomMailDelivery"/>
 
 
 The :class:`cartouche.interfaces.IAutoLogin` utility
 ----------------------------------------------------
 
-This utility is used to log the user in automatically at the end of
-registration.
+This utility is used to log the user in automatically after confirming a
+registration or password reset token.
 
-By default, :mod:`cartouche` does *not* log the user in.  If you are using
-:mod:`repoze.who`'s ``auth_tkt`` plugin, you may wish to configure
-:func:`cartouche.registration.autoLoginViaAuthTkt` to enable this feature.
+By default, :mod:`cartouche` does *not* log the user in;  instead, it e-mails
+the user a random password.  If you are using :mod:`repoze.who`, you may wish
+to configure :func:`cartouche.registration.autoLoginViaAuthTkt` to enable this
+feature.
 
 E.g., via imperative Python code:
 
@@ -264,6 +273,7 @@ or ZCML:
 To implement your own auto-login utility, you must register a function
 providing the :class:`cartouche.interfaces.IAutoLogin` interface,
 or a class whose instances provide it.
+
 
 The :class:`cartouche.interfaces.ITokenGenerator` utility
 ---------------------------------------------------------
