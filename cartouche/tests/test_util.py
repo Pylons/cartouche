@@ -73,6 +73,19 @@ class Test_view_url(_Base, unittest.TestCase):
                          'http://other.example.com/?foo=bar&baz=qux')
 
 
+class Test_uuidRandomToken(unittest.TestCase):
+
+    def _callFUT(self):
+        from cartouche.util import uuidRandomToken
+        return uuidRandomToken()
+
+    def test_it(self):
+        from uuid import UUID
+        token = self._callFUT()
+        uuid = UUID(token)
+        self.assertEqual(uuid.version, 4)
+
+
 class Test_getRandomToken(_Base, unittest.TestCase):
 
     def _callFUT(self, request=None):
@@ -94,6 +107,21 @@ class Test_getRandomToken(_Base, unittest.TestCase):
         self.config.registry.registerUtility(_tokenGenerator, ITokenGenerator)
         token = self._callFUT()
         self.assertEqual(token, 'RANDOM')
+
+
+class Test_randomPassword(unittest.TestCase):
+
+    def _callFUT(self):
+        from cartouche.util import randomPassword
+        return randomPassword()
+
+    def test_it(self):
+        import re
+        RANDOM_PATTERN = re.compile(r'[A-Za-z0-9]{6,8}'
+                                     '[~!@#$%^&*]'
+                                     '[A-Za-z0-9]{6,8}'
+                                   )
+        self.failUnless(RANDOM_PATTERN.match(self._callFUT()))
 
 
 class Test_autoLoginViaAuthTkt(_Base, unittest.TestCase):
@@ -147,7 +175,55 @@ class Test_sendGeneratedPassword(_Base, unittest.TestCase):
     def test_miss(self):
         self.assertRaises(KeyError, self._callFUT, userid='nonesuch')
 
-    def test_hit(self):
+    def test_hit_w_password_utility(self):
+        import re
+        from repoze.sendmail.interfaces import IMailDelivery
+        from zope.password.password import SSHAPasswordManager
+        from cartouche.interfaces import IPasswordGenerator
+        GENERATED = re.compile(r'Your new password is:\s+(?P<password>[^\s]+)',
+                    re.MULTILINE)
+        FROM_EMAIL = 'admin@example.com'
+        TO_EMAIL = 'phred@example.com'
+        def _password():
+            return 'PASSWORD'
+        self.config.registry.registerUtility(_password, IPasswordGenerator)
+        self.config.registry.settings['cartouche.from_addr'] = FROM_EMAIL
+        delivery = DummyMailer()
+        self.config.registry.registerUtility(delivery, IMailDelivery)
+        confirmed = DummyConfirmed()
+        confirmed.set('UUID',
+                      email=TO_EMAIL,
+                      login='phred',
+                      password='old_password',
+                      security_question='question',
+                      security_answer='answer',
+                      token=None,
+                     )
+
+        self._callFUT(userid='UUID', confirmed=confirmed)
+
+        record = confirmed.get('UUID')
+        self.assertEqual(record.uuid, 'UUID')
+        self.assertEqual(record.email, TO_EMAIL)
+        self.assertEqual(record.login, 'phred')
+        password = record.password
+        self.assertNotEqual(password, 'old_password')
+        self.failUnless(password.startswith('{SSHA}'))
+        self.assertEqual(record.security_question, 'question')
+        self.assertEqual(record.security_answer, 'answer')
+        self.assertEqual(record.token, None)
+        login_url = 'http://example.com/login.html'
+        self.assertEqual(delivery._sent[0], FROM_EMAIL)
+        self.assertEqual(list(delivery._sent[1]), [TO_EMAIL])
+        payload = delivery._sent[2].get_payload()
+        self.failUnless(login_url in payload)
+        found = GENERATED.search(payload)
+        generated = found.group('password') 
+        self.assertEqual(generated, 'PASSWORD')
+        pwd_mgr = SSHAPasswordManager()
+        self.failUnless(pwd_mgr.checkPassword(password, generated))
+
+    def test_hit_wo_password_utility(self):
         import re
         from repoze.sendmail.interfaces import IMailDelivery
         from zope.password.password import SSHAPasswordManager

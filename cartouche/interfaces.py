@@ -36,6 +36,14 @@ class ITokenGenerator(Interface):
         """ Return a unique, quasi-random token as an ASCII-only string.
         """
 
+
+class IPasswordGenerator(Interface):
+    """ Utility interface:  generate random passwords for users.
+    """
+    def __call__():
+        """ Return a random / string password string.
+        """
+
 class IAutoLogin(Interface):
     """ Utility interface to allow loggin users in automatically.
     """

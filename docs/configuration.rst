@@ -285,9 +285,8 @@ opaque / immutable IDs for users.
 By default, :mod:`cartouche` uses an implementation which generates
 random UUIDs using :func:`uuid.uuid4`.
 
-To implement your own token generation utility, you must register a function
-providing the :class:`cartouche.interfaces.ITokenGenerator` interface,
-or a class whose instances provide it.
+To implement your own token generation utility, you must register a callable
+providing the :class:`cartouche.interfaces.ITokenGenerator` interface.
 
 E.g., via imperative Python code:
 
@@ -302,8 +301,39 @@ or ZCML:
 .. code-block:: xml
 
    <utility
-        provides="cartouche.interfaces.IAutoLogin"
+        provides="cartouche.interfaces.IPasswordGenerator"
         component="yourpackage.utilities.myTokenGenerator"/>
+
+
+The :class:`cartouche.interfaces.IPasswordGenerator` utility
+------------------------------------------------------------
+
+:mod:`cartouche` uses this utility generate random passwords for users,
+when no utility is registered for :class:`cartouche.interfaces.IAutoLogin`.
+
+By default, :mod:`cartouche` uses an implementation which generates
+random passwords consisting of a two sequences of letters and digits,
+separated by a symbol character.
+
+To implement your own password generation utility, you must register a
+callable providing the :class:`cartouche.interfaces.IPasswordGenerator`
+interface.
+
+E.g., via imperative Python code:
+
+.. code-block:: python
+
+   from cartouche.interfaces import IPasswordGenerator
+   from yourpackage.utilities import myPasswordGenerator
+   config.registerUtility(myTokenGenerator, IPasswordGenerator)
+    
+or ZCML:
+
+.. code-block:: xml
+
+   <utility
+        provides="cartouche.interfaces.IPasswordGenerator"
+        component="yourpackage.utilities.myPasswordGenerator"/>
 
 
 Adapters

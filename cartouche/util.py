@@ -32,6 +32,7 @@ from zope.interface import directlyProvides
 from zope.password.password import SSHAPasswordManager
 
 from cartouche.interfaces import IAutoLogin
+from cartouche.interfaces import IPasswordGenerator
 from cartouche.interfaces import ITokenGenerator
 
 # By default, deliver e-mail via localhost, port 25.
@@ -56,11 +57,26 @@ def view_url(context, request, key, default_name, **extra_qs):
     return _fixup_url(context, request, configured, **extra_qs)
 
 
-def getRandomToken(request):
-    generator = request.registry.queryUtility(ITokenGenerator)
-    if generator:
-        return generator()
+def uuidRandomToken():
     return str(uuid4())
+directlyProvides(uuidRandomToken, ITokenGenerator)
+
+
+def getRandomToken(request):
+    generator = request.registry.queryUtility(ITokenGenerator,
+                                              default=uuidRandomToken)
+    return generator()
+
+
+def randomPassword():
+    result = []
+    for _ in range(randrange(6, 8)):
+        result.append(choice(_CHARS))
+    result.append(choice(_SYMBOLS))
+    for _ in range(randrange(6, 8)):
+        result.append(choice(_CHARS))
+    return ''.join(result)
+directlyProvides(randomPassword, IPasswordGenerator)
 
 
 def autoLoginViaWhoAPI(uuid, request):
@@ -88,21 +104,14 @@ You can login to the site at the following URL:
 _SYMBOLS = '~!@#$%^&*'
 _CHARS = letters + digits
 
-def _randomPassword():
-    result = []
-    for _ in range(randrange(6, 8)):
-        result.append(choice(_CHARS))
-    result.append(choice(_SYMBOLS))
-    for _ in range(randrange(6, 8)):
-        result.append(choice(_CHARS))
-    return ''.join(result)
-
 def sendGeneratedPassword(request, uuid, confirmed):
     record = confirmed.get(uuid)
     if record is None:
         raise KeyError
     pwd_mgr = SSHAPasswordManager()
-    new_password = _randomPassword()
+    generator = request.registry.queryUtility(IPasswordGenerator,
+                                              default=randomPassword)
+    new_password = generator()
     encoded = pwd_mgr.encodePassword(new_password)
     confirmed.set(uuid,
                   email=record.email,
