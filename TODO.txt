@@ -57,7 +57,7 @@ Update Account Login
 Login / Logout
 --------------
 
-- [X] Implement login view following the ``repoze.who`` 2.0 docs.
+- [/] Implement login view following the ``repoze.who`` 2.0 docs.
 
       * Compare passwords using ``zope.password`` utility.
 
@@ -67,11 +67,13 @@ Login / Logout
 
       * Handle ``came_from`` URLs properly.
 
+      ? Should we tell the user if there is no matching login?
+
 - [/] Implement logout view following the ``repoze.who`` 2.0 docs.
 
-      ? Display a confirmation dialog and require POST?
+      * Make after-logout URL configurable via Pyramid ``settings``?
 
-      ? Make after-logout URL configurable via Pyramid ``settings``?
+      ? Should we display a confirmation dialog and require POST?
 
 
 Account Recovery

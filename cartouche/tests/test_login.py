@@ -227,7 +227,7 @@ class Test_logout(_Base, unittest.TestCase):
             request = self._makeRequest()
         return logout_view(context, request)
 
-    def test_GET(self):
+    def test_GET_wo_after_logout_url_setting(self):
         from webob.exc import HTTPFound
         api = FauxAPI({'known': 'valid'})
         request = self._makeRequest(environ={'repoze.who.api': api})
@@ -236,6 +236,21 @@ class Test_logout(_Base, unittest.TestCase):
 
         self.failUnless(isinstance(response, HTTPFound))
         self.assertEqual(response.location, 'http://example.com/')
+
+        for key, value in api.LOGOUT_HEADERS:
+            self.assertEqual(response.headers.get(key), value)
+
+    def test_GET_w_after_logout_url_setting(self):
+        from webob.exc import HTTPFound
+        URL = 'http://example.com/after_logout.html'
+        self.config.registry.settings['cartouche.after_logout_url'] = URL
+        api = FauxAPI({'known': 'valid'})
+        request = self._makeRequest(environ={'repoze.who.api': api})
+
+        response = self._callFUT(request=request)
+
+        self.failUnless(isinstance(response, HTTPFound))
+        self.assertEqual(response.location, URL)
 
         for key, value in api.LOGOUT_HEADERS:
             self.assertEqual(response.headers.get(key), value)

@@ -88,8 +88,8 @@ def login_view(context, request):
 def logout_view(context, request):
     api = get_api(request.environ)
     headers =  api.logout()
-    # TODO: make after-logout URL configurable?
-    return HTTPFound(location=model_url(context, request), headers=headers)
+    after_logout_url = view_url(context, request, 'after_logout_url', '')
+    return HTTPFound(location=after_logout_url, headers=headers)
 
 
 RECOVERY_EMAIL = """

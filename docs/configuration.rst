@@ -151,6 +151,8 @@ global ``PasteDeploy`` configuration file:
    cartouche.login_url = /site_login.html
    cartouche.recover_account_url = /account_recovery.html
    cartouche.reset_password_url = /password_reset.html
+   cartouche.after_reset_url = /login.html
+   cartouche.after_logut_url = /after_logout.html
    cartouche.auto_login_identifier = auth_tkt_id
 
 
@@ -199,6 +201,11 @@ global ``PasteDeploy`` configuration file:
     If a relative URL, it will be prepended with the Pyramid site root URL.
     *Default:  /edit_account.html (only useful if a utility is configured
     for the :class:`cartouche.interfaces.IAutoLogin` interface)*
+
+``cartouche.after_logoug_url``
+    The URL to which users are directed after logging out from the site.
+    If a relative URL, it will be prepended with the Pyramid site root URL.
+    *Default:  /*
 
 ``cartouche.auto_login_identifier``
     The ID of the ``repoze.who`` authenticator plugin used to auto-login
