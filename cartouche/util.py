@@ -59,7 +59,7 @@ def view_url(context, request, key, default_name, **extra_qs):
 def getRandomToken(request):
     generator = request.registry.queryUtility(ITokenGenerator)
     if generator:
-        return generator.getToken()
+        return generator()
     return str(uuid4())
 
 

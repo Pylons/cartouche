@@ -161,17 +161,15 @@ class Test_register_view(_Base, unittest.TestCase):
         from repoze.sendmail.interfaces import IMailDelivery
         from webob.exc import HTTPFound
         from cartouche.interfaces import ITokenGenerator
-
+        def _tokenGenerator():
+            return 'RANDOM'
         FROM_EMAIL = 'admin@example.com'
         TO_EMAIL = 'phred@example.com'
-        POST = {'email': TO_EMAIL,
-                'register': '',
-               }
+        POST = {'email': TO_EMAIL, 'register': ''}
         self.config.registry.settings['cartouche.from_addr'] = FROM_EMAIL
         delivery = DummyMailer()
         self.config.registry.registerUtility(delivery, IMailDelivery)
-        self.config.registry.registerUtility(DummyTokenGenerator(),
-                                             ITokenGenerator)
+        self.config.registry.registerUtility(_tokenGenerator, ITokenGenerator)
         pending = self._registerPendingRegistrations()
         context = self._makeContext()
         request = self._makeRequest(POST=POST)
@@ -193,19 +191,17 @@ class Test_register_view(_Base, unittest.TestCase):
         from repoze.sendmail.interfaces import IMailDelivery
         from webob.exc import HTTPFound
         from cartouche.interfaces import ITokenGenerator
-
+        def _tokenGenerator():
+            return 'RANDOM'
         FROM_EMAIL = 'admin@example.com'
         TO_EMAIL = 'phred@example.com'
         CONF_URL = '/confirm.html?foo=bar'
-        POST = {'email': TO_EMAIL,
-                'register': '',
-               }
+        POST = {'email': TO_EMAIL, 'register': ''}
         self.config.registry.settings['cartouche.from_addr'] = FROM_EMAIL
         self.config.registry.settings['cartouche.confirmation_url'] = CONF_URL
         delivery = DummyMailer()
         self.config.registry.registerUtility(delivery, IMailDelivery)
-        self.config.registry.registerUtility(DummyTokenGenerator(),
-                                             ITokenGenerator)
+        self.config.registry.registerUtility(_tokenGenerator, ITokenGenerator)
         pending = self._registerPendingRegistrations()
         context = self._makeContext()
         request = self._makeRequest(POST=POST)
@@ -822,8 +818,3 @@ class DummyMailer:
 
     def send(self, from_addr, to_addrs, message):
         self._sent = (from_addr, to_addrs, message)
-
-
-class DummyTokenGenerator:
-    def getToken(self):
-        return 'RANDOM'

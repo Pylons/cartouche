@@ -88,9 +88,10 @@ class Test_getRandomToken(_Base, unittest.TestCase):
         self.assertEqual(uuid.version, 4)
 
     def test_w_utility(self):
+        def _tokenGenerator():
+            return 'RANDOM'
         from cartouche.interfaces import ITokenGenerator
-        self.config.registry.registerUtility(DummyTokenGenerator(),
-                                             ITokenGenerator)
+        self.config.registry.registerUtility(_tokenGenerator, ITokenGenerator)
         token = self._callFUT()
         self.assertEqual(token, 'RANDOM')
 
@@ -194,10 +195,6 @@ class Test_sendGeneratedPassword(_Base, unittest.TestCase):
         self.failUnless(pwd_mgr.checkPassword(password, generated))
         self.failUnless(RANDOM_PATTERN.match(generated))
 
-
-class DummyTokenGenerator:
-    def getToken(self):
-        return 'RANDOM'
 
 
 class FauxAPI:

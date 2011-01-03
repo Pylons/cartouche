@@ -32,8 +32,8 @@ class ICartouche(Interface):
 class ITokenGenerator(Interface):
     """ Utility interface:  generate tokens for confirmation e-mails.
     """
-    def getToken():
-        """ Return a unique, quasi-random token as a string.
+    def __call__():
+        """ Return a unique, quasi-random token as an ASCII-only string.
         """
 
 class IAutoLogin(Interface):
