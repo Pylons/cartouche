@@ -183,6 +183,19 @@ class PendingRegistrationsTests(_RegistrationsBase, unittest.TestCase):
 
         self.failIf('phred@example.com' in cartouche.pending)
 
+    def test___iter___empty(self):
+        adapter = self._makeOne()
+        self.assertEqual(list(adapter), [])
+
+    def test___iter___non_empty(self):
+        context = self._makeContext()
+        cartouche = context.cartouche = self._makeCartouche()
+        phred = object()
+        cartouche.pending['phred@example.com'] = phred
+        adapter = self._makeOne(context)
+
+        self.assertEqual(list(adapter), [('phred@example.com', phred)])
+
 
 class ConfirmedRegistrationsTests(_RegistrationsBase, unittest.TestCase):
 
@@ -393,6 +406,18 @@ class ConfirmedRegistrationsTests(_RegistrationsBase, unittest.TestCase):
         self.failIf('UUID' in cartouche.by_uuid)
         self.failIf(record.login in cartouche.by_login)
         self.failIf(record.email in cartouche.by_email)
+
+    def test___iter___empty(self):
+        adapter = self._makeOne()
+        self.assertEqual(list(adapter), [])
+
+    def test___iter___non_empty(self):
+        context = self._makeContext()
+        cartouche = context.cartouche = self._makeCartouche()
+        record = Dummy(login='login', email='phred@example.com')
+        cartouche.by_uuid['UUID'] = record
+        adapter = self._makeOne(context)
+        self.assertEqual(list(adapter), [('UUID', record)])
 
 class Dummy(object):
     def __init__(self, **kw):
