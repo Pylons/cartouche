@@ -79,6 +79,12 @@ class Test_uuidRandomToken(unittest.TestCase):
         from cartouche.util import uuidRandomToken
         return uuidRandomToken()
 
+    def test_provides_ITokenGenerator(self):
+        from zope.interface.verify import verifyObject
+        from cartouche.interfaces import ITokenGenerator
+        from cartouche.util import uuidRandomToken
+        verifyObject(ITokenGenerator, uuidRandomToken)
+
     def test_it(self):
         from uuid import UUID
         token = self._callFUT()
@@ -115,6 +121,12 @@ class Test_randomPassword(unittest.TestCase):
         from cartouche.util import randomPassword
         return randomPassword()
 
+    def test_provides_IPasswordGenerator(self):
+        from zope.interface.verify import verifyObject
+        from cartouche.interfaces import IPasswordGenerator
+        from cartouche.util import randomPassword
+        verifyObject(IPasswordGenerator, randomPassword)
+
     def test_it(self):
         import re
         RANDOM_PATTERN = re.compile(r'[A-Za-z0-9]{6,8}'
@@ -131,6 +143,12 @@ class Test_autoLoginViaAuthTkt(_Base, unittest.TestCase):
         if request is None:
             request = self._makeRequest()
         return autoLoginViaWhoAPI(userid, request)
+
+    def test_provides_IAutoLogin(self):
+        from zope.interface.verify import verifyObject
+        from cartouche.interfaces import IAutoLogin
+        from cartouche.util import autoLoginViaWhoAPI
+        verifyObject(IAutoLogin, autoLoginViaWhoAPI)
 
     def test_no_API_in_environ(self):
         self.assertRaises(ValueError, self._callFUT)
@@ -270,6 +288,36 @@ class Test_sendGeneratedPassword(_Base, unittest.TestCase):
         pwd_mgr = SSHAPasswordManager()
         self.failUnless(pwd_mgr.checkPassword(password, generated))
         self.failUnless(RANDOM_PATTERN.match(generated))
+
+
+class Test_defaultCameFromURL(_Base, unittest.TestCase):
+
+    def _callFUT(self, request):
+        from cartouche.util import defaultCameFromURL
+        return defaultCameFromURL(request)
+
+    def test_provides_ICameFromURL(self):
+        from zope.interface.verify import verifyObject
+        from cartouche.interfaces import ICameFromURL
+        from cartouche.util import defaultCameFromURL
+        verifyObject(ICameFromURL, defaultCameFromURL)
+
+    def test_no_qs_or_referrer(self):
+        EXPECTED = 'http://example.com/view.html'
+        request = self._makeRequest(view_name='view.html')
+        self.assertEqual(self._callFUT(request), EXPECTED)
+
+    def test_no_qs_use_referrer(self):
+        EXPECTED = 'http://example.com/expected'
+        request = self._makeRequest(environ={'HTTP_REFERER': EXPECTED})
+        self.assertEqual(self._callFUT(request), EXPECTED)
+
+    def test_prefer_query_string_to_referrer(self):
+        EXPECTED = 'http://example.com/expected'
+        UNEXPECTED = 'http://example.com/unexpected'
+        request = self._makeRequest(GET={'came_from': EXPECTED},
+                                    environ={'HTTP_REFERER': UNEXPECTED})
+        self.assertEqual(self._callFUT(request), EXPECTED)
 
 
 

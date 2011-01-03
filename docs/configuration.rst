@@ -275,10 +275,71 @@ providing the :class:`cartouche.interfaces.IAutoLogin` interface,
 or a class whose instances provide it.
 
 
+The :class:`cartouche.interfaces.ICameFromURL` utility
+------------------------------------------------------------
+
+:mod:`cartouche` uses this utility to compute the redirected URL following
+a successful login.
+
+By default, :mod:`cartouche` uses an implementation which returns to the
+default view of the context object (normally the site root).
+
+To implement your own "came from" utility, you must register a
+callable providing the :class:`cartouche.interfaces.ICameFromURL`
+interface.
+
+E.g., via imperative Python code:
+
+.. code-block:: python
+
+   from cartouche.interfaces import ICameFromURL
+   from yourpackage.utilities import myCameFromURL
+   config.registerUtility(myCameFromURL, ICameFromURL)
+    
+or ZCML:
+
+.. code-block:: xml
+
+   <utility
+        provides="cartouche.interfaces.ICameFromURL"
+        component="yourpackage.utilities.myCameFromURL"/>
+
+
+The :class:`cartouche.interfaces.IPasswordGenerator` utility
+------------------------------------------------------------
+
+:mod:`cartouche` uses this utility to generate random passwords for users,
+when no utility is registered for :class:`cartouche.interfaces.IAutoLogin`.
+
+By default, :mod:`cartouche` uses an implementation which generates
+random passwords consisting of a two sequences of letters and digits,
+separated by a symbol character.
+
+To implement your own password generation utility, you must register a
+callable providing the :class:`cartouche.interfaces.IPasswordGenerator`
+interface.
+
+E.g., via imperative Python code:
+
+.. code-block:: python
+
+   from cartouche.interfaces import IPasswordGenerator
+   from yourpackage.utilities import myPasswordGenerator
+   config.registerUtility(myPasswordGenerator, IPasswordGenerator)
+    
+or ZCML:
+
+.. code-block:: xml
+
+   <utility
+        provides="cartouche.interfaces.IPasswordGenerator"
+        component="yourpackage.utilities.myPasswordGenerator"/>
+
+
 The :class:`cartouche.interfaces.ITokenGenerator` utility
 ---------------------------------------------------------
 
-:mod:`cartouche` uses this utility generate random tokens for use in
+:mod:`cartouche` uses this utility to generate random tokens for use in
 registration confirmation and password reset e-mails, as well as to create
 opaque / immutable IDs for users.
 
@@ -303,37 +364,6 @@ or ZCML:
    <utility
         provides="cartouche.interfaces.IPasswordGenerator"
         component="yourpackage.utilities.myTokenGenerator"/>
-
-
-The :class:`cartouche.interfaces.IPasswordGenerator` utility
-------------------------------------------------------------
-
-:mod:`cartouche` uses this utility generate random passwords for users,
-when no utility is registered for :class:`cartouche.interfaces.IAutoLogin`.
-
-By default, :mod:`cartouche` uses an implementation which generates
-random passwords consisting of a two sequences of letters and digits,
-separated by a symbol character.
-
-To implement your own password generation utility, you must register a
-callable providing the :class:`cartouche.interfaces.IPasswordGenerator`
-interface.
-
-E.g., via imperative Python code:
-
-.. code-block:: python
-
-   from cartouche.interfaces import IPasswordGenerator
-   from yourpackage.utilities import myPasswordGenerator
-   config.registerUtility(myTokenGenerator, IPasswordGenerator)
-    
-or ZCML:
-
-.. code-block:: xml
-
-   <utility
-        provides="cartouche.interfaces.IPasswordGenerator"
-        component="yourpackage.utilities.myPasswordGenerator"/>
 
 
 Adapters

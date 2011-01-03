@@ -32,6 +32,7 @@ from zope.interface import directlyProvides
 from zope.password.password import SSHAPasswordManager
 
 from cartouche.interfaces import IAutoLogin
+from cartouche.interfaces import ICameFromURL
 from cartouche.interfaces import IPasswordGenerator
 from cartouche.interfaces import ITokenGenerator
 
@@ -130,3 +131,13 @@ def sendGeneratedPassword(request, uuid, confirmed):
     message['Subject'] = 'Your new site password'
     message.set_payload(body)
     delivery.send(from_addr, [record.email], message)
+
+
+def defaultCameFromURL(request):
+    came_from = request.GET.get('came_from')
+    if came_from is None:
+        came_from = request.environ.get('HTTP_REFERER') #sic
+    if came_from is None:
+        came_from = model_url(request.context, request, request.view_name)
+    return came_from
+directlyProvides(defaultCameFromURL, ICameFromURL)

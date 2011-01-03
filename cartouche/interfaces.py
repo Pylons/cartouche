@@ -45,10 +45,18 @@ class IPasswordGenerator(Interface):
         """
 
 class IAutoLogin(Interface):
-    """ Utility interface to allow loggin users in automatically.
+    """ Utility interface to allow logging users in automatically.
     """
     def __call__(userid, request):
         """ Return auto-login response headers for newly-confirmed user.
+        """
+
+
+class ICameFromURL(Interface):
+    """ Utility interface for computing 'came_from' after login.
+    """
+    def __call__(request):
+        """ Return a URL to redirect after login.
         """
 
 class IPendingRegistrationInfo(Interface):

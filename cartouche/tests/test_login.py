@@ -93,12 +93,24 @@ class Test_login(_Base, unittest.TestCase):
         rendered_form = info['rendered_form']
         inputs = [x for x in INPUT.findall(rendered_form)
                         if not x.startswith('_')]
-        self.assertEqual(inputs, ['login_name', 'password'])
+        self.assertEqual(inputs, ['login_name', 'password', 'came_from'])
         self.assertEqual(info['message'], None)
         self.assertEqual(info['recover_account_url'],
                          'http://example.com/recover_account.html')
         self.assertEqual(info['reset_password_url'],
                          'http://example.com/reset_password.html')
+
+    def test_GET_w_came_from_url_utility(self):
+        from cartouche.interfaces import ICameFromURL
+        CAME_FROM = 'http://example.com/expected'
+        def _cameFromURL(request):
+            return CAME_FROM
+        self.config.registry.registerUtility(_cameFromURL, ICameFromURL)
+        mtr = self.config.testing_add_template('templates/main.pt')
+
+        info = self._callFUT()
+
+        self.assertEqual(info['came_from'], CAME_FROM)
 
     def test_GET_w_url_overrides(self):
         import re
@@ -115,7 +127,7 @@ class Test_login(_Base, unittest.TestCase):
         rendered_form = info['rendered_form']
         inputs = [x for x in INPUT.findall(rendered_form)
                         if not x.startswith('_')]
-        self.assertEqual(inputs, ['login_name', 'password'])
+        self.assertEqual(inputs, ['login_name', 'password', 'came_from'])
         self.assertEqual(info['message'], None)
         self.assertEqual(info['recover_account_url'],
                          'http://example.com/recover.html')
@@ -164,7 +176,7 @@ class Test_login(_Base, unittest.TestCase):
         self.failUnless(main_template is mtr.implementation())
         self.assertEqual(info['message'], 'Login failed')
 
-    def test_POST_w_good_password_no_came_from(self):
+    def test_POST_w_good_password_no_came_from_field(self):
         from webob.exc import HTTPFound
         POST = {'login_name': 'known',
                 'password': 'valid',
@@ -180,6 +192,27 @@ class Test_login(_Base, unittest.TestCase):
 
         self.failUnless(isinstance(response, HTTPFound))
         self.assertEqual(response.location, 'http://example.com/')
+        for key, value in api.LOGIN_HEADERS:
+            self.failUnless(response.headers[key] is value)
+
+    def test_POST_w_good_password_w_came_from_field(self):
+        from webob.exc import HTTPFound
+        CAME_FROM = 'http://example.com/expected'
+        POST = {'login_name': 'known',
+                'password': 'valid',
+                'came_from': CAME_FROM,
+                'login': '',
+               }
+        mtr = self.config.testing_add_template('templates/main.pt')
+        context = self._makeContext()
+        api = FauxAPI({'known': 'valid'})
+        request = self._makeRequest(POST=POST,
+                                   environ={'repoze.who.api': api})
+
+        response = self._callFUT(context, request)
+
+        self.failUnless(isinstance(response, HTTPFound))
+        self.assertEqual(response.location, CAME_FROM)
         for key, value in api.LOGIN_HEADERS:
             self.failUnless(response.headers[key] is value)
 

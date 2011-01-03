@@ -20,6 +20,7 @@ from colander import String
 from colander import null
 from deform import Form
 from deform import ValidationFailure
+from deform.widget import HiddenWidget
 from deform.widget import PasswordWidget
 from pyramid.renderers import get_renderer
 from pyramid.url import model_url
@@ -28,6 +29,7 @@ from repoze.who.api import get_api
 from webob.exc import HTTPFound
 
 from cartouche.interfaces import IAutoLogin
+from cartouche.interfaces import ICameFromURL
 from cartouche.interfaces import IRegistrations
 from cartouche.persistence import ConfirmedRegistrations
 from cartouche.util import getRandomToken
@@ -38,11 +40,17 @@ from cartouche.util import view_url
 class Login(Schema):
     login_name = SchemaNode(String())
     password = SchemaNode(String(), widget=PasswordWidget())
+    came_from = SchemaNode(String(), missing=None, widget=HiddenWidget())
 
 
 def login_view(context, request):
+    whence = request.registry.queryUtility(ICameFromURL)
+    if whence is not None:
+        came_from = whence(request)
+    else:
+        came_from = model_url(context, request)
     form = Form(Login(), buttons=('login',))
-    rendered_form = form.render(null)
+    rendered_form = form.render({'came_from': came_from})
     message = request.GET.get('message')
 
     if 'login' in request.POST:
@@ -57,13 +65,15 @@ def login_view(context, request):
             api = get_api(request.environ)
             identity, headers =  api.login(credentials)
             if identity is not None:
-                # TODO: came_from handling
-                return HTTPFound(location=model_url(context, request),
-                                 headers=headers)
+                came_from = appstruct.get('came_from')
+                if came_from is None:
+                    came_from = model_url(context, request)
+                return HTTPFound(location=came_from, headers=headers)
             message = 'Login failed'
 
     main_template = get_renderer('templates/main.pt')
     return {'main_template': main_template.implementation(),
+            'came_from': came_from,
             'rendered_form': rendered_form,
             'message': message,
             'recover_account_url': view_url(context, request,
