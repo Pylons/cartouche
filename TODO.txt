@@ -129,7 +129,13 @@ Password Reset
 ``pyramid`` Authentication Policy
 ---------------------------------
 
-- [_] Implement interface for use within ``pyramid`` sans ``repoze.who``.
+- [X] Implement interface for use within ``pyramid`` sans ``repoze.who`` m/w.
+
+      * N.B.:  this is really just a "repoze.who>=2.0dev"-specific policy,
+        configured with a 'who.ini' filename to enable creation of the
+        API factory.
+
+- [_] Add groups defined in ``cartouche`` admin UI.
 
       o Prefer a configured ``IPlugins`` adapter, if available.
 
