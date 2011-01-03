@@ -157,6 +157,17 @@ class WhoPluginTests(unittest.TestCase):
         self.assertEqual(plugin.authenticate(environ, credentials), 'UUID')
 
 
+class Test_make_plugin(unittest.TestCase):
+
+    def test_it(self):
+        URI = "file:///tmp/Data.fs"
+        from cartouche.whoplugin import WhoPlugin
+        from cartouche.whoplugin import make_plugin
+        plugin = make_plugin(URI)
+        self.failUnless(isinstance(plugin, WhoPlugin))
+        self.assertEqual(plugin._zodb_uri, URI)
+
+
 class Dummy(object):
     def __init__(self, **kw):
         self.__dict__.update(kw)
