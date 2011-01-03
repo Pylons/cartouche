@@ -21,6 +21,7 @@ from colander import SchemaNode
 from colander import String
 from colander import deferred
 from colander import null
+from colander import _marker as missing_required # XXX: reach-around
 from deform import Form
 from deform import ValidationFailure
 from deform.template import default_dir as deform_templates_dir
@@ -94,6 +95,7 @@ def old_password_widget(node, kw):
 def old_password_missing(node, kw):
     if kw.get('old_password') is None:
         return ''
+    return missing_required
 
 @deferred
 def old_password_validator(node, kw):
@@ -300,8 +302,7 @@ def edit_account_view(context, request):
             login = appstruct['login_name']
             email = appstruct['email']
             pwd_mgr = SSHAPasswordManager()
-            password = pwd_mgr.encodePassword(
-                                            appstruct['password'])
+            password = pwd_mgr.encodePassword(appstruct['password'])
             security_question = appstruct['security']['question']
             security_answer = appstruct['security']['answer']
             confirmed.set(userid,

@@ -38,7 +38,7 @@ Update Account Login
 
       * Allow user to pick login name, defaulting to e-mail address.
 
-      o *If* the existing password is set, **require** it and check it.
+      * *If* the existing password is set, **require** it and check it.
 
       * Allow the user to enter and confirm a password.
 
