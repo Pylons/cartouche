@@ -29,12 +29,11 @@ class PyramidPolicyTests(unittest.TestCase):
         return PyramidPolicy
 
     def _makeOne(self, global_conf=None, config_file='who.ini',
-                       identifier_id='testing', callback=None):
+                       identifier_id='testing'):
         import os
         if global_conf is None:
             global_conf = {'here': os.getcwd()}
-        return self._getTargetClass()(global_conf, config_file,
-                                      identifier_id, callback)
+        return self._getTargetClass()(global_conf, config_file, identifier_id)
 
     def _makeContext(self, **kw):
         from pyramid.testing import DummyModel
@@ -42,7 +41,10 @@ class PyramidPolicyTests(unittest.TestCase):
 
     def _makeRequest(self, **kw):
         from pyramid.testing import DummyRequest
-        return DummyRequest(**kw)
+        context = kw.pop('context', None)
+        if context is None:
+            context = self._makeContext()
+        return DummyRequest(context=context, **kw)
 
     def _makeCartouche(self):
         class DummyCartouche(object):
@@ -52,6 +54,45 @@ class PyramidPolicyTests(unittest.TestCase):
                 self.by_login = {}
                 self.by_email = {}
         return DummyCartouche()
+
+    def _registerConfirmed(self):
+        from cartouche.interfaces import IRegistrations
+        by_uuid = {}
+        by_login = {}
+        by_email = {}
+        class DummyConfirmed:
+            def __init__(self, context):
+                pass
+            def get(self, key, default=None):
+                return by_uuid.get(key, default)
+            def get_by_login(self, login, default=None):
+                uuid = by_login.get(login)
+                if uuid is None:
+                    return default
+                return by_uuid.get(uuid, default)
+            def get_by_email(self, email, default=None):
+                uuid = by_email.get(email)
+                if uuid is None:
+                    return default
+                return by_uuid.get(uuid, default)
+            def set(self, key, **kw):
+                old_record = by_uuid.get(key)
+                if old_record is not None:
+                    del by_login[old_record.login]
+                    del by_email[old_record.email]
+                record =  Dummy(**kw)
+                by_uuid[key] = record
+                by_login[record.login] = key
+                by_email[record.email] = key
+            def remove(self, key):
+                info = by_uuid[key]
+                del by_uuid[key]
+                del by_login[info.login]
+                del by_email[info.email]
+        self.config.registry.registerAdapter(DummyConfirmed,
+                                             (None,), IRegistrations,
+                                             name='confirmed')
+        return by_uuid, by_login, by_email
 
     def test_class_conforms_to_IAuthenticationPolicy(self):
         from zope.interface.verify import verifyClass
@@ -71,35 +112,76 @@ class PyramidPolicyTests(unittest.TestCase):
         policy = self._makeOne()
         self.assertEqual(policy.authenticated_userid(request), None)
 
-    def test_authenticated_userid_w_api_in_environ(self):
+    def test_authenticated_userid_w_api_in_environ_wo_adapter_miss(self):
         ENVIRON = {'wsgi.version': '1.0',
                    'HTTP_USER_AGENT': 'testing',
                    'repoze.who.api': DummyAPI('phred'),
                   }
         request = self._makeRequest(environ=ENVIRON)
+        cartouche = request.context.cartouche = self._makeCartouche()
         policy = self._makeOne()
-        self.assertEqual(policy.authenticated_userid(request), 'phred')
-
-    def test_authenticated_userid_wo_callback_w_identity_in_environ(self):
-        ENVIRON = {'repoze.who.identity': {'repoze.who.userid': 'phred'}}
-        request = self._makeRequest(environ=ENVIRON)
-        policy = self._makeOne()
-        self.assertEqual(policy.authenticated_userid(request), 'phred')
-
-    def test_authenticated_userid_w_callback_veto_w_identity_in_environ(self):
-        def _callback(identity, request):
-            return None
-        ENVIRON = {'repoze.who.identity': {'repoze.who.userid': 'phred'}}
-        request = self._makeRequest(environ=ENVIRON)
-        policy = self._makeOne(callback=_callback)
         self.assertEqual(policy.authenticated_userid(request), None)
 
-    def test_authenticated_userid_w_callback_pass_w_identity_in_environ(self):
-        def _callback(identity, request):
-            return ['phlyntstones']
+    def test_authenticated_userid_w_api_in_environ_wo_adapter_hit(self):
+        ENVIRON = {'wsgi.version': '1.0',
+                   'HTTP_USER_AGENT': 'testing',
+                   'repoze.who.api': DummyAPI('phred'),
+                  }
+        request = self._makeRequest(environ=ENVIRON)
+        cartouche = request.context.cartouche = self._makeCartouche()
+        cartouche.by_uuid['phred'] = Dummy()
+        policy = self._makeOne()
+        self.assertEqual(policy.authenticated_userid(request), 'phred')
+
+    def test_authenticated_userid_w_api_in_environ_w_adapter_miss(self):
+        ENVIRON = {'wsgi.version': '1.0',
+                   'HTTP_USER_AGENT': 'testing',
+                   'repoze.who.api': DummyAPI('phred'),
+                  }
+        by_uuid, by_login, by_email = self._registerConfirmed()
+        request = self._makeRequest(environ=ENVIRON)
+        policy = self._makeOne()
+        self.assertEqual(policy.authenticated_userid(request), None)
+
+    def test_authenticated_userid_w_api_in_environ_w_adapter_hit(self):
+        ENVIRON = {'wsgi.version': '1.0',
+                   'HTTP_USER_AGENT': 'testing',
+                   'repoze.who.api': DummyAPI('phred'),
+                  }
+        by_uuid, by_login, by_email = self._registerConfirmed()
+        by_uuid['phred'] = Dummy()
+        request = self._makeRequest(environ=ENVIRON)
+        policy = self._makeOne()
+        self.assertEqual(policy.authenticated_userid(request), 'phred')
+
+    def test_authenticated_userid_w_identity_in_environ_wo_adapter_miss(self):
         ENVIRON = {'repoze.who.identity': {'repoze.who.userid': 'phred'}}
         request = self._makeRequest(environ=ENVIRON)
-        policy = self._makeOne(callback=_callback)
+        cartouche = request.context.cartouche = self._makeCartouche()
+        policy = self._makeOne()
+        self.assertEqual(policy.authenticated_userid(request), None)
+
+    def test_authenticated_userid_w_identity_in_environ_wo_adapter_hit(self):
+        ENVIRON = {'repoze.who.identity': {'repoze.who.userid': 'phred'}}
+        request = self._makeRequest(environ=ENVIRON)
+        cartouche = request.context.cartouche = self._makeCartouche()
+        cartouche.by_uuid['phred'] = Dummy()
+        policy = self._makeOne()
+        self.assertEqual(policy.authenticated_userid(request), 'phred')
+
+    def test_authenticated_userid_w_identity_in_environ_w_adapter_miss(self):
+        ENVIRON = {'repoze.who.identity': {'repoze.who.userid': 'phred'}}
+        by_uuid, by_login, by_email = self._registerConfirmed()
+        request = self._makeRequest(environ=ENVIRON)
+        policy = self._makeOne()
+        self.assertEqual(policy.authenticated_userid(request), None)
+
+    def test_authenticated_userid_w_identity_in_environ_w_adapter_hit(self):
+        ENVIRON = {'repoze.who.identity': {'repoze.who.userid': 'phred'}}
+        by_uuid, by_login, by_email = self._registerConfirmed()
+        by_uuid['phred'] = Dummy()
+        request = self._makeRequest(environ=ENVIRON)
+        policy = self._makeOne()
         self.assertEqual(policy.authenticated_userid(request), 'phred')
 
     def test_effective_principals_no_identity_in_environ(self):
@@ -111,7 +193,18 @@ class PyramidPolicyTests(unittest.TestCase):
         policy = self._makeOne()
         self.assertEqual(policy.effective_principals(request), [Everyone])
 
-    def test_effective_principals_w_api_in_environ(self):
+    def test_effective_principals_w_api_in_environ_wo_adapter_miss(self):
+        from pyramid.security import Everyone
+        ENVIRON = {'wsgi.version': '1.0',
+                   'HTTP_USER_AGENT': 'testing',
+                   'repoze.who.api': DummyAPI('phred'),
+                  }
+        request = self._makeRequest(environ=ENVIRON)
+        cartouche = request.context.cartouche = self._makeCartouche()
+        policy = self._makeOne()
+        self.assertEqual(policy.effective_principals(request), [Everyone])
+
+    def test_effective_principals_w_api_in_environ_wo_adapter_hit(self):
         from pyramid.security import Authenticated
         from pyramid.security import Everyone
         ENVIRON = {'wsgi.version': '1.0',
@@ -119,38 +212,74 @@ class PyramidPolicyTests(unittest.TestCase):
                    'repoze.who.api': DummyAPI('phred'),
                   }
         request = self._makeRequest(environ=ENVIRON)
+        cartouche = request.context.cartouche = self._makeCartouche()
+        cartouche.by_uuid['phred'] = Dummy()
         policy = self._makeOne()
         self.assertEqual(policy.effective_principals(request),
-                         ['phred', Authenticated, Everyone])
+                         ['phred', Authenticated, Everyone]) # TODO groups
 
-    def test_effective_principals_wo_callback_w_identity_in_environ(self):
-        from pyramid.security import Authenticated
+    def test_effective_principals_w_api_in_environ_w_adapter_miss(self):
         from pyramid.security import Everyone
-        ENVIRON = {'repoze.who.identity': {'repoze.who.userid': 'phred'}}
+        ENVIRON = {'wsgi.version': '1.0',
+                   'HTTP_USER_AGENT': 'testing',
+                   'repoze.who.api': DummyAPI('phred'),
+                  }
+        by_uuid, by_login, by_email = self._registerConfirmed()
         request = self._makeRequest(environ=ENVIRON)
         policy = self._makeOne()
-        self.assertEqual(policy.effective_principals(request),
-                         ['phred', Authenticated, Everyone])
-
-    def test_effective_principals_w_callback_veto_w_identity_in_environ(self):
-        from pyramid.security import Everyone
-        def _callback(identity, request):
-            return None
-        ENVIRON = {'repoze.who.identity': {'repoze.who.userid': 'phred'}}
-        request = self._makeRequest(environ=ENVIRON)
-        policy = self._makeOne(callback=_callback)
         self.assertEqual(policy.effective_principals(request), [Everyone])
 
-    def test_effective_principals_w_callback_pass_w_identity_in_environ(self):
+    def test_effective_principals_w_api_in_environ_w_adapter_hit(self):
         from pyramid.security import Authenticated
         from pyramid.security import Everyone
-        def _callback(identity, request):
-            return ['phlyntstones']
+        ENVIRON = {'wsgi.version': '1.0',
+                   'HTTP_USER_AGENT': 'testing',
+                   'repoze.who.api': DummyAPI('phred'),
+                  }
+        by_uuid, by_login, by_email = self._registerConfirmed()
+        by_uuid['phred'] = Dummy()
+        request = self._makeRequest(environ=ENVIRON)
+        policy = self._makeOne()
+        self.assertEqual(policy.effective_principals(request),
+                         ['phred', Authenticated, Everyone]) # TODO groups
+
+    def test_effective_principals_w_identity_in_environ_wo_adapter_miss(self):
+        from pyramid.security import Everyone
         ENVIRON = {'repoze.who.identity': {'repoze.who.userid': 'phred'}}
         request = self._makeRequest(environ=ENVIRON)
-        policy = self._makeOne(callback=_callback)
+        cartouche = request.context.cartouche = self._makeCartouche()
+        policy = self._makeOne()
+        self.assertEqual(policy.effective_principals(request), [Everyone])
+
+    def test_effective_principals_w_identity_in_environ_wo_adapter_hit(self):
+        from pyramid.security import Authenticated
+        from pyramid.security import Everyone
+        ENVIRON = {'repoze.who.identity': {'repoze.who.userid': 'phred'}}
+        request = self._makeRequest(environ=ENVIRON)
+        cartouche = request.context.cartouche = self._makeCartouche()
+        cartouche.by_uuid['phred'] = Dummy()
+        policy = self._makeOne()
         self.assertEqual(policy.effective_principals(request),
-                         ['phred', 'phlyntstones', Authenticated, Everyone])
+                         ['phred', Authenticated, Everyone]) # TODO groups
+
+    def test_effective_principals_w_identity_in_environ_w_adapter_miss(self):
+        from pyramid.security import Everyone
+        ENVIRON = {'repoze.who.identity': {'repoze.who.userid': 'phred'}}
+        request = self._makeRequest(environ=ENVIRON)
+        by_uuid, by_login, by_email = self._registerConfirmed()
+        policy = self._makeOne()
+        self.assertEqual(policy.effective_principals(request), [Everyone])
+
+    def test_effective_principals_w_identity_in_environ_w_adapter_hit(self):
+        from pyramid.security import Authenticated
+        from pyramid.security import Everyone
+        ENVIRON = {'repoze.who.identity': {'repoze.who.userid': 'phred'}}
+        by_uuid, by_login, by_email = self._registerConfirmed()
+        by_uuid['phred'] = Dummy()
+        request = self._makeRequest(environ=ENVIRON)
+        policy = self._makeOne()
+        self.assertEqual(policy.effective_principals(request),
+                         ['phred', Authenticated, Everyone])
 
     def test_remember_w_api_in_environ(self):
         HEADERS = [('Fruit', 'Basket')]
@@ -196,3 +325,9 @@ class DummyAPI:
     def forget(self, identity=None):
         self._forgtten = identity
         return self._headers
+
+
+class Dummy:
+
+    def __init__(self, **kw):
+        self.__dict__.update(kw)
