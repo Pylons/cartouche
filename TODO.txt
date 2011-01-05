@@ -129,19 +129,15 @@ Password Reset
 ``pyramid`` Authentication Policy
 ---------------------------------
 
-- [X] Implement interface for use within ``pyramid`` sans ``repoze.who`` m/w.
+- [/] Implement interface for use within ``pyramid`` sans ``repoze.who`` m/w.
 
-      * N.B.:  this is really just a "repoze.who>=2.0dev"-specific policy,
-        configured with a 'who.ini' filename to enable creation of the
-        API factory.
+      * N.B.:  unlike the policy in ``pyramid_repoze``, do *not* use a
+        callback:  instead, use the ``IRegistrations`` adapter to confirm user
+        existence, falling back to ``ConfirmedRegistrations(context)``.
 
-- [_] Add groups defined in ``cartouche`` admin UI.
+      o Add the ZCML directive to configure this policy.
 
-      o Prefer a configured ``IPlugins`` adapter, if available.
-
-      o Else use the ``repoze.who.zodbconn`` in the environment, if present.
-
-      o Otherwise, use ``cartouche.zodb_uri`` setting.
+- [_] Extend ``effective_principals`` to include groups defined in admin UI.
 
 
 User / Group Administration
