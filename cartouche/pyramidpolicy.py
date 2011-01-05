@@ -13,15 +13,23 @@
 ##############################################################################
 import os
 
-from zope.interface import implements
-
+from pyramid.config import Configurator
 from pyramid.interfaces import IAuthenticationPolicy
 from pyramid.security import Authenticated
 from pyramid.security import Everyone
 from repoze.who.config import make_api_factory_with_config as FactoryFactory
+from zope.interface import Interface
+from zope.interface import implements
+from zope.schema import ASCIILine
+from zope.schema import TextLine
 
 from cartouche.interfaces import IRegistrations
 from cartouche.persistence import ConfirmedRegistrations
+
+
+class ICartouchePolicyDirective(Interface):
+    config_file = ASCIILine(title=u'config_file', required=True)
+    identifier_name = TextLine(title=u'identitfier_name', required=True)
 
 
 class PyramidPolicy(object):
@@ -98,3 +106,11 @@ class PyramidPolicy(object):
         confirmed = self._getConfirmed(request)
         record = confirmed.get(uuid)
         return list(getattr(record, 'groups', ()))
+
+
+def cartoucheAuthenticationPolicy(_context, config_file, identifier_name):
+    policy = PyramidPolicy(config_file, identifier_name)
+    # authentication policies must be registered eagerly so they can
+    # be found by the view registration machinery
+    config = Configurator.with_context(_context)
+    config._set_authentication_policy(policy)

@@ -135,7 +135,9 @@ Password Reset
         callback:  instead, use the ``IRegistrations`` adapter to confirm user
         existence, falling back to ``ConfirmedRegistrations(context)``.
 
-      o Add the ZCML directive to configure this policy.
+      * Add the ZCML directive to configure this policy.
+
+      o Document using the policy.
 
 - [_] Extend ``effective_principals`` to include groups defined in admin UI.
 

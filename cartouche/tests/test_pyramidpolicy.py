@@ -324,6 +324,46 @@ class PyramidPolicyTests(_Base, unittest.TestCase):
         self.assertEqual(api._forgtten, {'repoze.who.userid': 'phred'})
 
 
+class TestCartoucheAuthenticationPolicyDirective(_Base, unittest.TestCase):
+
+    def _callFUT(self, context, config_file=None, identifier_id='IDENTIFIER'):
+        from cartouche.pyramidpolicy import cartoucheAuthenticationPolicy
+        if config_file is None:
+            config_file = self._makeWhoConfig()
+        return cartoucheAuthenticationPolicy(context, config_file,
+                                             identifier_id)
+
+    def test_it_defaults(self):
+        from pyramid.interfaces import IAuthenticationPolicy
+        reg = self.config.registry
+        context = self.config._ctx = self.config._make_context()
+        self._callFUT(context)
+        actions = extract_actions(context.actions)
+        self.assertEqual(len(actions), 1)
+        regadapt = actions[0]
+        self.assertEqual(regadapt['discriminator'], IAuthenticationPolicy)
+        self.assertEqual(regadapt['callable'], None)
+        self.assertEqual(regadapt['args'], ())
+        policy = reg.getUtility(IAuthenticationPolicy)
+        self.assertEqual(policy._identifier_id, 'IDENTIFIER')
+
+    def test_it(self):
+        reg = self.config.registry
+        from pyramid.interfaces import IAuthenticationPolicy
+        context = self.config._ctx = self.config._make_context()
+        config_file = self._makeWhoConfig('firstbase.ini')
+        self._callFUT(context, config_file, 'something')
+        actions = extract_actions(context.actions)
+        self.assertEqual(len(actions), 1)
+        regadapt = actions[0]
+        self.assertEqual(regadapt['discriminator'], IAuthenticationPolicy)
+        self.assertEqual(regadapt['callable'], None)
+        self.assertEqual(regadapt['args'], ())
+        policy = reg.getUtility(IAuthenticationPolicy)
+        self.assertEqual(policy._config_file, config_file)
+        self.assertEqual(policy._identifier_id, 'something')
+
+
 class DummyAPI:
 
     def __init__(self, authenticated=None, headers=()):
@@ -347,3 +387,19 @@ class Dummy:
 
     def __init__(self, **kw):
         self.__dict__.update(kw)
+
+
+def extract_actions(native):
+    from zope.configuration.config import expand_action
+    L = []
+    for action in native:
+        (discriminator, callable, args, kw, includepath, info, order
+         ) = expand_action(*action)
+        d = {}
+        d['discriminator'] = discriminator
+        d['callable'] = callable
+        d['args'] = args
+        d['kw'] = kw
+        d['order'] = order
+        L.append(d)
+    return L

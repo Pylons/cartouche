@@ -1,0 +1,15 @@
+<configure
+    xmlns="http://namespaces.zope.org/zope"
+    xmlns:meta="http://namespaces.zope.org/meta">
+
+  <meta:directives namespace="http://pylonshq.com/pyramid">
+
+    <meta:directive
+        name="view"
+        schema="cartouche.pyramidpolicy.ICartouchePolicyDirective"
+        handler="cartouche.pyramidpolicy.cartoucheAuthenticationPolicy"
+        />
+
+  </meta:directives>
+
+</configure>
