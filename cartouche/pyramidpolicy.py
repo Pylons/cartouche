@@ -11,13 +11,14 @@
 # FITNESS FOR A PARTICULAR PURPOSE
 #
 ##############################################################################
+import os
 
 from zope.interface import implements
 
 from pyramid.interfaces import IAuthenticationPolicy
 from pyramid.security import Authenticated
 from pyramid.security import Everyone
-from repoze.who.config import make_api_factory_with_config
+from repoze.who.config import make_api_factory_with_config as FactoryFactory
 
 from cartouche.interfaces import IRegistrations
 from cartouche.persistence import ConfirmedRegistrations
@@ -26,9 +27,12 @@ from cartouche.persistence import ConfirmedRegistrations
 class PyramidPolicy(object):
     implements(IAuthenticationPolicy)
 
-    def __init__(self, global_conf, config_file, identifier_id):
-        self._api_factory = make_api_factory_with_config(global_conf,
-                                                         config_file)
+    def __init__(self, config_file, identifier_id):
+        config_file = self._config_file = os.path.abspath(
+                                            os.path.normpath(config_file))
+        config_dir, _ = os.path.split(config_file)
+        global_conf = {'here': config_dir}
+        self._api_factory = FactoryFactory(global_conf, config_file)
         self._identifier_id = identifier_id
 
     def authenticated_userid(self, request):

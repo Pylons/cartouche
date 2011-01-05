@@ -16,6 +16,8 @@ import unittest
 
 class PyramidPolicyTests(unittest.TestCase):
 
+    _tempdir = None
+
     def setUp(self):
         from pyramid.configuration import Configurator
         self.config = Configurator()
@@ -23,17 +25,29 @@ class PyramidPolicyTests(unittest.TestCase):
 
     def tearDown(self):
         self.config.end()
+        if self._tempdir is not None:
+            import shutil
+            shutil.rmtree(self._tempdir)
 
     def _getTargetClass(self):
         from cartouche.pyramidpolicy import PyramidPolicy
         return PyramidPolicy
 
-    def _makeOne(self, global_conf=None, config_file='who.ini',
-                       identifier_id='testing'):
+    def _makeWhoConfig(self, filename='who.ini', text=''):
         import os
-        if global_conf is None:
-            global_conf = {'here': os.getcwd()}
-        return self._getTargetClass()(global_conf, config_file, identifier_id)
+        if self._tempdir is None:
+            import tempfile
+            tempdir = self._tempdir = tempfile.mkdtemp()
+        fqn = os.path.join(tempdir, filename)
+        f = open(fqn, 'w')
+        f.write(text)
+        f.flush()
+        f.close()
+        return fqn
+
+    def _makeOne(self):
+        config_file = self._makeWhoConfig()
+        return self._getTargetClass()(config_file, 'testing')
 
     def _makeContext(self, **kw):
         from pyramid.testing import DummyModel
