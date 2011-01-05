@@ -20,8 +20,8 @@ class WhoPluginTests(unittest.TestCase):
     _tempdir = None
 
     def setUp(self):
-        from pyramid.configuration import Configurator
-        self.config = Configurator()
+        from pyramid.config import Configurator
+        self.config = Configurator(autocommit=True)
         self.config.begin()
 
     def tearDown(self):

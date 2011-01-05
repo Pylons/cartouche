@@ -13,14 +13,13 @@
 ##############################################################################
 import unittest
 
-
-class PyramidPolicyTests(unittest.TestCase):
+class _Base(object):
 
     _tempdir = None
 
     def setUp(self):
-        from pyramid.configuration import Configurator
-        self.config = Configurator()
+        from pyramid.config import Configurator
+        self.config = Configurator(autocommit=True)
         self.config.begin()
 
     def tearDown(self):
@@ -28,10 +27,6 @@ class PyramidPolicyTests(unittest.TestCase):
         if self._tempdir is not None:
             import shutil
             shutil.rmtree(self._tempdir)
-
-    def _getTargetClass(self):
-        from cartouche.pyramidpolicy import PyramidPolicy
-        return PyramidPolicy
 
     def _makeWhoConfig(self, filename='who.ini', text=''):
         import os
@@ -44,6 +39,13 @@ class PyramidPolicyTests(unittest.TestCase):
         f.flush()
         f.close()
         return fqn
+
+
+class PyramidPolicyTests(_Base, unittest.TestCase):
+
+    def _getTargetClass(self):
+        from cartouche.pyramidpolicy import PyramidPolicy
+        return PyramidPolicy
 
     def _makeOne(self):
         config_file = self._makeWhoConfig()

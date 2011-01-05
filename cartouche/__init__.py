@@ -12,7 +12,7 @@
 #
 ##############################################################################
 
-from pyramid.configuration import Configurator
+from pyramid.config import Configurator
 from repoze.zodbconn.finder import PersistentApplicationFinder
 
 
@@ -37,6 +37,9 @@ def main(global_config, **settings):
     finder = PersistentApplicationFinder(zodb_uri, appmaker)
     def get_root(request):
         return finder(request.environ)
-    config = Configurator(root_factory=get_root, settings=settings)
+    config = Configurator(root_factory=get_root,
+                          autocommit=True,
+                          settings=settings,
+                         )
     config.load_zcml(zcml_file)
     return config.make_wsgi_app()
