@@ -5,7 +5,7 @@
   <meta:directives namespace="http://pylonshq.com/pyramid">
 
     <meta:directive
-        name="view"
+        name="cartoucheauthenticationpolicy"
         schema="cartouche.pyramidpolicy.ICartouchePolicyDirective"
         handler="cartouche.pyramidpolicy.cartoucheAuthenticationPolicy"
         />
