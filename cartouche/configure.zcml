@@ -2,6 +2,16 @@
 
   <!-- this must be included for the view declarations to work -->
   <include package="pyramid.includes" />
+  <include file="meta.zcml" />
+
+  <utility
+    component="cartouche.util.defaultCameFromURL"/>
+
+  <cartoucheauthenticationpolicy
+    config_file="/dev/null"
+    identifier_name="auth_tkt" />
+
+  <aclauthorizationpolicy/>
 
   <view
      context=".models.Root"
@@ -22,6 +32,7 @@
      name="edit_account.html"
      view=".registration.edit_account_view"
      renderer="templates/register.pt"
+     permission="edit_own_account"
      />
 
   <view

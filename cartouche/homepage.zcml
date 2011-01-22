@@ -13,6 +13,15 @@
      renderer="templates/testing_homepage.pt"
      />
 
+  <!-- Simple protected page for testing. -->
+  <view
+     context=".models.Root"
+     name="protected.html"
+     view=".testing.homepage_view"
+     renderer="templates/testing_homepage.pt"
+     permission="view"
+     />
+
   <!-- Dump pending / confirmed registration info for testing. -->
   <view
      context=".models.Root"

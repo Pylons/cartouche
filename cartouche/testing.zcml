@@ -4,7 +4,14 @@
   <include package="pyramid.includes" />
 
   <!-- include the standard views, resources -->
+  <include package="cartouche" file="meta.zcml"/>
   <include package="cartouche" />
+
+  <cartoucheauthenticationpolicy
+    config_file="/dev/null"
+    identifier_name="auth_tkt" />
+
+  <aclauthorizationpolicy/>
 
   <!-- "deliver" mail by printing to the console -->
   <utility provides="repoze.sendmail.interfaces.IMailDelivery"
@@ -27,6 +34,15 @@
      context=".models.Root"
      view=".testing.homepage_view"
      renderer="templates/testing_homepage.pt"
+     />
+
+  <!-- Simple protected page for testing. -->
+  <view
+     context=".models.Root"
+     name="protected.html"
+     view=".testing.homepage_view"
+     renderer="templates/testing_homepage.pt"
+     permission="view"
      />
 
   <!-- Dump pending / confirmed registration info for testing. -->
