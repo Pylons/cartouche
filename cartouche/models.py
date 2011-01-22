@@ -15,6 +15,8 @@
 from BTrees.OOBTree import OOBTree
 from persistent import Persistent
 from persistent.mapping import PersistentMapping
+from pyramid.security import Allow
+from pyramid.security import Authenticated
 from zope.interface import implements
 
 from cartouche.interfaces import IRoot
@@ -26,6 +28,7 @@ from cartouche.interfaces import IRegistrationInfo
 class Root(PersistentMapping):
     implements(IRoot)
     __parent__ = __name__ = None
+    __acl__ = [(Authenticated, Allow, ('view', 'edit_own_account'))]
     def __repr__(self):
         return '<Root object;  keys: %s>' % ', '.join(self.keys())
 
