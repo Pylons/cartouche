@@ -142,6 +142,23 @@ class Test_login(_Base, unittest.TestCase):
 
         self.assertEqual(info['message'], 'MESSAGE')
 
+    def test_POST_w_missing_login(self):
+        POST = {'login_name': '',
+                'password': 'bogus',
+                'login': '',
+               }
+        mtr = self.config.testing_add_template('templates/main.pt')
+        context = self._makeContext()
+        api = FauxAPI()
+        request = self._makeRequest(POST=POST,
+                                   environ={'repoze.who.api': api})
+
+        info = self._callFUT(context, request)
+
+        main_template = info['main_template']
+        self.failUnless(main_template is mtr.implementation())
+        self.assertEqual(info['message'], 'Please supply required values')
+
     def test_POST_w_unknown_login(self):
         POST = {'login_name': 'unknown',
                 'password': 'bogus',
@@ -227,10 +244,36 @@ class Test_logout(_Base, unittest.TestCase):
             request = self._makeRequest()
         return logout_view(context, request)
 
-    def test_GET_wo_after_logout_url_setting(self):
+    def test_GET(self):
+        IDENTITY = {'repoze.who.userid': 'testing'}
+        request = self._makeRequest(environ={'repoze.who.identity': IDENTITY,
+                                             'REQUEST_METHOD': 'GET',
+                                            })
+
+        info = self._callFUT(request=request)
+
+        self.assertEqual(info['userid'], 'testing')
+
+    def test_POST_wo_confirm(self):
+        IDENTITY = {'repoze.who.userid': 'testing'}
+        request = self._makeRequest(environ={'repoze.who.identity': IDENTITY,
+                                             'REQUEST_METHOD': 'POST',
+                                            },
+                                    POST={},
+                                   )
+
+        info = self._callFUT(request=request)
+
+        self.assertEqual(info['userid'], 'testing')
+
+    def test_POST_wo_after_logout_url_setting(self):
         from webob.exc import HTTPFound
         api = FauxAPI({'known': 'valid'})
-        request = self._makeRequest(environ={'repoze.who.api': api})
+        request = self._makeRequest(environ={'repoze.who.api': api,
+                                             'REQUEST_METHOD': 'POST',
+                                            },
+                                    POST={'logout': 'Confirm'},
+                                   )
 
         response = self._callFUT(request=request)
 
@@ -240,12 +283,16 @@ class Test_logout(_Base, unittest.TestCase):
         for key, value in api.LOGOUT_HEADERS:
             self.assertEqual(response.headers.get(key), value)
 
-    def test_GET_w_after_logout_url_setting(self):
+    def test_POST_w_after_logout_url_setting(self):
         from webob.exc import HTTPFound
         URL = 'http://example.com/after_logout.html'
         self.config.registry.settings['cartouche.after_logout_url'] = URL
         api = FauxAPI({'known': 'valid'})
-        request = self._makeRequest(environ={'repoze.who.api': api})
+        request = self._makeRequest(environ={'repoze.who.api': api,
+                                             'REQUEST_METHOD': 'POST',
+                                            },
+                                    POST={'logout': 'Confirm'},
+                                   )
 
         response = self._callFUT(request=request)
 

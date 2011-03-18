@@ -56,8 +56,9 @@ def login_view(context, request):
     if 'login' in request.POST:
         try:
             appstruct = form.validate(request.POST.items())
-        except ValidationFailure, e: #pragma NO COVER
+        except ValidationFailure, e:
             rendered_form = e.render()
+            message = 'Please supply required values'
         else:
             credentials = {'login': appstruct['login_name'],
                            'password': appstruct['password'],
@@ -86,10 +87,13 @@ def login_view(context, request):
 
 
 def logout_view(context, request):
-    api = get_api(request.environ)
-    headers =  api.logout()
-    after_logout_url = view_url(context, request, 'after_logout_url', '')
-    return HTTPFound(location=after_logout_url, headers=headers)
+    if 'logout' in request.POST:
+        api = get_api(request.environ)
+        headers =  api.logout()
+        after_logout_url = view_url(context, request, 'after_logout_url', '')
+        return HTTPFound(location=after_logout_url, headers=headers)
+    identity = request.environ.get('repoze.who.identity', {})
+    return {'userid': identity.get('repoze.who.userid')}
 
 
 RECOVERY_EMAIL = """
@@ -192,7 +196,7 @@ def reset_password_view(context, request):
     if 'reset' in request.POST:
         try:
             appstruct = form.validate(request.POST.items())
-        except ValidationFailure, e: #pragma NO COVER
+        except ValidationFailure, e:
             rendered_form = e.render()
         else:
             login = appstruct['login_name']

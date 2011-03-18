@@ -46,6 +46,7 @@
      context=".interfaces.IRoot"
      name="logout.html"
      view=".login.logout_view"
+     renderer="templates/logout.pt"
      />
 
   <view

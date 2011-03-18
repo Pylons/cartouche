@@ -1,0 +1,12 @@
+<metal:body metal:use-macro="main_template">
+ <metal:slot metal:fill-slot="main">
+  <h1> Confirm Logout </h1>
+
+  <p> You are logged in as user, '${userid}'.  Are you sure you wish
+      to log out?</p>
+
+  <form action="#" method="POST">
+   <input type="logout" value="Confirm" />
+  </form>
+ </metal:slot>
+</metal:body>
