@@ -43,6 +43,11 @@ class PyramidPolicy(object):
         self._api_factory = FactoryFactory(global_conf, config_file)
         self._identifier_id = identifier_id
 
+    def unauthenticated_userid(self, request):
+        """ See IAuthenticationPolicy.
+        """
+        raise NotImplementedError()
+
     def authenticated_userid(self, request):
         """ See IAuthenticationPolicy.
         """

@@ -120,6 +120,15 @@ class PyramidPolicyTests(_Base, unittest.TestCase):
         from pyramid.interfaces import IAuthenticationPolicy
         verifyObject(IAuthenticationPolicy, self._makeOne())
 
+    def test_unauthenticated_userid_raises(self):
+        ENVIRON = {'wsgi.version': '1.0',
+                   'HTTP_USER_AGENT': 'testing',
+                  }
+        request = self._makeRequest(environ=ENVIRON)
+        policy = self._makeOne()
+        self.assertRaises(NotImplementedError,
+                          policy.unauthenticated_userid, request)
+        
     def test_authenticated_userid_no_identity_in_environ(self):
         ENVIRON = {'wsgi.version': '1.0',
                    'HTTP_USER_AGENT': 'testing',
