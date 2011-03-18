@@ -23,7 +23,7 @@ from urlparse import urlparse
 from urlparse import urlunparse
 from uuid import uuid4
 
-from pyramid.url import model_url
+from pyramid.url import resource_url
 from repoze.sendmail.delivery import DirectMailDelivery
 from repoze.sendmail.mailer import SMTPMailer
 from repoze.sendmail.interfaces import IMailDelivery
@@ -42,7 +42,7 @@ localhost_mta = DirectMailDelivery(SMTPMailer())
 
 def _fixup_url(context, request, base_url, **extra_qs):
     if base_url.startswith('/'):
-        base_url = urljoin(model_url(context, request), base_url)
+        base_url = urljoin(resource_url(context, request), base_url)
     (sch, netloc, path, parms, qs, frag) = urlparse(base_url)
     qs_items = parse_qsl(qs) + extra_qs.items()
     qs = urlencode(qs_items, 1)
@@ -53,8 +53,8 @@ def view_url(context, request, key, default_name, **extra_qs):
     configured = request.registry.settings.get('cartouche.%s' % key)
     if configured is None:
         if extra_qs:
-            return model_url(context, request, default_name, query=extra_qs)
-        return model_url(context, request, default_name)
+            return resource_url(context, request, default_name, query=extra_qs)
+        return resource_url(context, request, default_name)
     return _fixup_url(context, request, configured, **extra_qs)
 
 
@@ -138,6 +138,6 @@ def defaultCameFromURL(request):
     if came_from is None:
         came_from = request.environ.get('HTTP_REFERER') #sic
     if came_from is None:
-        came_from = model_url(request.context, request, request.view_name)
+        came_from = resource_url(request.context, request, request.view_name)
     return came_from
 directlyProvides(defaultCameFromURL, ICameFromURL)

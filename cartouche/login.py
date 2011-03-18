@@ -23,7 +23,7 @@ from deform import ValidationFailure
 from deform.widget import HiddenWidget
 from deform.widget import PasswordWidget
 from pyramid.renderers import get_renderer
-from pyramid.url import model_url
+from pyramid.url import resource_url
 from repoze.sendmail.interfaces import IMailDelivery
 from repoze.who.api import get_api
 from webob.exc import HTTPFound
@@ -48,7 +48,7 @@ def login_view(context, request):
     if whence is not None:
         came_from = whence(request)
     else:
-        came_from = model_url(context, request)
+        came_from = resource_url(context, request)
     form = Form(Login(), buttons=('login',))
     rendered_form = form.render({'came_from': came_from})
     message = request.GET.get('message')
@@ -67,7 +67,7 @@ def login_view(context, request):
             if identity is not None:
                 came_from = appstruct.get('came_from')
                 if came_from is None:
-                    came_from = model_url(context, request)
+                    came_from = resource_url(context, request)
                 return HTTPFound(location=came_from, headers=headers)
             message = 'Login failed'
 
@@ -185,7 +185,7 @@ def reset_password_view(context, request):
     if confirmed is None:  #pragma NO COVERAGE
         confirmed = ConfirmedRegistrations(context)
     login_url = view_url(context, request, 'login_url', 'login.html')
-    reset_url = model_url(context, request, request.view_name)
+    reset_url = resource_url(context, request, request.view_name)
     registry = request.registry
     message = request.GET.get('message')
 
