@@ -5,6 +5,9 @@
   <div tal:content="structure rendered_form">
    FORM GOES HERE
   </div>
+   <p tal:condition="register_url|False">
+    <em><a href="${register_url}">Register for an account</a></em>
+   </p>
    <p tal:condition="recover_account_url|False">
     <em><a href="${recover_account_url}">Recover your account login</a></em>
    </p>

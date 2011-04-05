@@ -149,6 +149,7 @@ global ``PasteDeploy`` configuration file:
    cartouche.after_confirmation_url = /thank_you_for_registering.html
    cartouche.after_edit_url = /after_account_edit.html
    cartouche.login_url = /site_login.html
+   cartouche.register_url = /register_account.html
    cartouche.recover_account_url = /account_recovery.html
    cartouche.reset_password_url = /password_reset.html
    cartouche.after_reset_url = /login.html
@@ -185,6 +186,11 @@ global ``PasteDeploy`` configuration file:
     The URL of the login form.  Users are redirected here after recovering
     the login name for their accounts.  If a relative URL, it will be
     prepended with the Pyramid site root URL.  *Default:  /login.html*
+
+``cartouche.register_url``
+    The URL at which users can register for an account.  If a relative URL,
+    it will be prepended with the Pyramid site root URL.
+    *Default:  /register.html*
 
 ``cartouche.recover_account_url``
     The URL to which users are directed for recovering the login name

@@ -95,6 +95,8 @@ class Test_login(_Base, unittest.TestCase):
                         if not x.startswith('_')]
         self.assertEqual(inputs, ['login_name', 'password', 'came_from'])
         self.assertEqual(info['message'], None)
+        self.assertEqual(info['register_url'],
+                         'http://example.com/register.html')
         self.assertEqual(info['recover_account_url'],
                          'http://example.com/recover_account.html')
         self.assertEqual(info['reset_password_url'],
