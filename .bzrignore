@@ -4,3 +4,4 @@ venv
 cartouche/templates/*.py
 docs/_build
 .coverage
+var/*
