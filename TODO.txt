@@ -131,7 +131,7 @@ Password Reset
 
 - [/] Implement interface for use within ``pyramid`` sans ``repoze.who`` m/w.
 
-      * N.B.:  unlike the policy in ``pyramid_repoze``, do *not* use a
+      * N.B.:  unlike the policy in ``pyramid_who``, do *not* use a
         callback:  instead, use the ``IRegistrations`` adapter to confirm user
         existence, falling back to ``ConfirmedRegistrations(context)``.
 
