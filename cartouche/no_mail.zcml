@@ -11,18 +11,6 @@
   <utility provides="repoze.sendmail.interfaces.IMailDelivery"
            factory=".testing.FauxMailDelivery" />
 
-  <!-- Use module globals for storing pending registration info. -->
-  <adapter provides="cartouche.interfaces.IRegistrations"
-           name="pending"
-           for="*"
-           factory=".testing.FauxPendingRegistrations" />
-
-  <!-- Use module globals for storing confirmed registration info. -->
-  <adapter provides="cartouche.interfaces.IRegistrations"
-           name="confirmed"
-           for="*"
-           factory=".testing.FauxConfirmedRegistrations" />
-
   <!-- Simple homepage for testing. -->
   <view
      context=".models.Root"
