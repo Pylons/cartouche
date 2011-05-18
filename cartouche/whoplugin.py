@@ -48,8 +48,11 @@ class WhoPlugin(object):
             confirmed = registry.queryAdapter(context, IRegistrations,
                                               name='confirmed')
             if confirmed is None:
-                app = self._getFinder()(environ)
-                confirmed = ConfirmedRegistrations(app)
+                if getattr(context, '_p_jar', None) is None:
+                    context = self._getFinder()(environ)
+                while context.__parent__ is not None:
+                    context = context.__parent__
+                confirmed = ConfirmedRegistrations(context)
             record = confirmed.get_by_login(login)
             if record and self._pwd_mgr.checkPassword(record.password,
                                                       password):

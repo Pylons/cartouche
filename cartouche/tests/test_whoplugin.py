@@ -130,6 +130,31 @@ class WhoPluginTests(unittest.TestCase):
         plugin = self._makeOne('file:///dev/null') # Don't fall back!
         self.assertEqual(plugin.authenticate(environ, credentials), 'UUID')
 
+    def test_miss_w_persistent_context(self):
+        from pyramid.threadlocal import manager
+        context = self._makeContext(_p_jar=object())
+        request = self._makeRequest(context=context)
+        manager.get()['request'] = request
+        environ = request.environ
+        credentials = {'login': 'login', 'password': 'bogus'}
+        plugin = self._makeOne()
+        self.assertEqual(plugin.authenticate(environ, credentials), None)
+
+    def test_hit_w_persistent_context_non_root(self):
+        from pyramid.threadlocal import manager
+        root = self._makeContext(_p_jar=object())
+        self._populate(root)
+        context = self._makeContext(_p_jar=object(),
+                                    __parent__=root,
+                                    cartouche=object(), # ignored
+                                   )
+        request = self._makeRequest(context=context)
+        manager.get()['request'] = request
+        environ = request.environ
+        credentials = {'login': 'login', 'password': 'password'}
+        plugin = self._makeOne()
+        self.assertEqual(plugin.authenticate(environ, credentials), 'UUID')
+
     def test_miss_w_conn_in_environ(self):
         environ = {'repoze.zodbconn.connection': self._makeFauxConn()}
         credentials = {'login': 'login', 'password': 'bogus'}
