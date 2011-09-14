@@ -389,7 +389,7 @@ Persistent Storage
 ------------------
 
 By default, :mod:`cartouche` expects to store information about users
-in and attribute of the "traversal root" named ``cartouche``.  This strategy
+in the ``cartouche`` attribute of the "traversal root".  This strategy
 is aimed at applications using traversal and :mod:`ZODB` or another
 "transparent" persistence machinery.
 
