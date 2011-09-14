@@ -133,7 +133,7 @@ Password Reset
 ``pyramid`` Authentication Policy
 ---------------------------------
 
-- [/] Implement interface for use within ``pyramid`` sans ``repoze.who`` m/w.
+- [X] Implement interface for use within ``pyramid`` sans ``repoze.who`` m/w.
 
       * N.B.:  unlike the policy in ``pyramid_who``, do *not* use a
         callback:  instead, use the ``IRegistrations`` adapter to confirm user
@@ -141,7 +141,7 @@ Password Reset
 
       * Add the ZCML directive to configure this policy.
 
-      o Document using the policy.
+      * Document using the policy.
 
 - [_] Extend ``effective_principals`` to include groups defined in admin UI.
 

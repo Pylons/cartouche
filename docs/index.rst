@@ -11,6 +11,7 @@ Contents:
    :maxdepth: 2
 
    configuration
+   without_repoze_who
    api
 
 Indices and tables
