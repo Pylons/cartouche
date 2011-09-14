@@ -146,7 +146,7 @@ def recover_account_view(context, request):
                 email_message['Subject'] = 'Account recovery'
                 email_message.set_payload(body)
                 delivery.send(from_addr, [email], email_message)
-            #else: # XXX not reporting lookup errors for now
+            #else: # DO NOT report lookup errors
             return HTTPFound(location=login_url)
 
     main_template = get_renderer('templates/main.pt')
@@ -206,6 +206,7 @@ def reset_password_view(context, request):
             token = appstruct['token']
             record = confirmed.get_by_login(login)
             if record is None:
+                # DO NOT report lookup errors
                 return HTTPFound(location=login_url)
             if token == '':
                 # send the e-mail
@@ -227,7 +228,6 @@ def reset_password_view(context, request):
                 message['Subject'] = 'Password reset confirmation'
                 message.set_payload(body)
                 delivery.send(from_addr, [record.email], message)
-                #else: # XXX not reporting lookup errors for now
                 return HTTPFound(location=reset_url)
             else:
                 if token != record.token:

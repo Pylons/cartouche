@@ -67,32 +67,32 @@ Login / Logout
 
       * Handle ``came_from`` URLs properly.
 
-      x Should we tell the user if there is no matching login?
+      * DO NOT inform the user if there is no matching login.
 
 - [X] Implement logout view following the ``repoze.who`` 2.0 docs.
 
-      * Make after-logout URL configurable via Pyramid ``settings``?
+      * Display a confirmation dialog and require POST.
 
-      * Should we display a confirmation dialog and require POST?
+      * Make after-logout URL configurable via Pyramid ``settings``.
 
 
 Account Recovery
 ----------------
 
-- [/] Prompt the user for their e-mail address.
+- [X] Prompt the user for their e-mail address.
 
       * On POST, send the user an e-mail reminding them of their login name,
         and redirect to the login view.
 
       * Make login URL configurable via Pyramid ``settings``.
 
-      ? Should we tell the user if there is no matching email address?
+      * DO NOT tell the user if there is no matching email address.
 
 
 Password Reset
 --------------
 
-- [/] Prompt the user for their login name.
+- [X] Prompt the user for their login name.
 
       * On POST without token, generate and seve a quasi-random token
         on the user's record.  Render the form showing the token and
@@ -106,12 +106,16 @@ Password Reset
       * On POST with mismatched token, display an error.
 
       * On POST with the matching token, if an ``IAutoLogin`` utility is
-        configured, use it to auto-login the user;  otherwise, generate a
-        random password and e-mail it to the user.
+        configured, use it to auto-login the user;  then redirect to the
+        "after reset" URL.
+        
+      * On POST with the matching token, if no ``IAutoLogin`` utility is
+        configured, generate a random password and e-mail it to the user;
+        then redirect to the "after reset" URL.
 
       * Make "after reset" URL configurable via Pyramid ``settings``.
 
-      ? Should we tell the user if there is no matching login?
+      * DO NOT tell the user if there is no matching login.
 
 
 ``repoze.who`` Authentication Plugin
