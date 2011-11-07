@@ -5,46 +5,10 @@
 
   <!-- include the standard views, resources -->
   <include package="cartouche" file="meta.zcml"/>
-  <include package="cartouche" />
+  <include package="cartouche" file="homepage.zcml"/>
 
   <!-- "deliver" mail by printing to the console -->
   <utility provides="repoze.sendmail.interfaces.IMailDelivery"
            factory=".testing.FauxMailDelivery" />
-
-  <!-- Simple homepage for testing. -->
-  <view
-     context=".models.Root"
-     view=".testing.homepage_view"
-     renderer="templates/testing_homepage.pt"
-     />
-
-  <!-- Simple protected page for testing. -->
-  <view
-     context=".models.Root"
-     name="protected.html"
-     view=".testing.homepage_view"
-     renderer="templates/testing_homepage.pt"
-     permission="view"
-     />
-
-  <!-- Dump pending / confirmed registration info for testing. -->
-  <view
-     context=".models.Root"
-     name="debug.html"
-     view=".testing.debug_view"
-     renderer="templates/testing_debug.pt"
-     />
-
-  <!-- Use ZODB for storing pending registration info. -->
-  <adapter provides="cartouche.interfaces.IRegistrations"
-           name="pending"
-           for="*"
-           factory=".persistence.PendingRegistrations" />
-
-  <!-- Use ZODB for storing confirmed registration info. -->
-  <adapter provides="cartouche.interfaces.IRegistrations"
-           name="confirmed"
-           for="*"
-           factory=".persistence.ConfirmedRegistrations" />
 
 </configure>
