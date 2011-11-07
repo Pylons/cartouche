@@ -208,7 +208,7 @@ global ``PasteDeploy`` configuration file:
     *Default:  /edit_account.html (only useful if a utility is configured
     for the :class:`cartouche.interfaces.IAutoLogin` interface)*
 
-``cartouche.after_logoug_url``
+``cartouche.after_logout_url``
     The URL to which users are directed after logging out from the site.
     If a relative URL, it will be prepended with the Pyramid site root URL.
     *Default:  /*
