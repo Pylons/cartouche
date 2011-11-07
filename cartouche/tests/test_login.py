@@ -343,7 +343,7 @@ class Test_recover_account(_Base, unittest.TestCase):
     def test_POST_w_errors(self):
         import re
         SUMMARY_ERROR = re.compile('<h3[^>]*>There was a problem', re.MULTILINE)
-        FIELD_ERROR = re.compile('<p class="error"', re.MULTILINE)
+        FIELD_ERROR = re.compile('<p class="errorMsg"', re.MULTILINE)
         POST = {'email': '',
                 'recover': '',
                }
@@ -494,7 +494,7 @@ class Test_reset_password(_Base, unittest.TestCase):
     def test_POST_w_errors(self):
         import re
         SUMMARY_ERROR = re.compile('<h3[^>]*>There was a problem', re.MULTILINE)
-        FIELD_ERROR = re.compile('<p class="error"', re.MULTILINE)
+        FIELD_ERROR = re.compile('<p class="errorMsg"', re.MULTILINE)
         POST = {'login_name': '', 'token': '', 'reset': ''}
         mtr = self.config.testing_add_template('templates/main.pt')
         context = self._makeContext()

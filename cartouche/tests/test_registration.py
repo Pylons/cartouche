@@ -140,7 +140,7 @@ class Test_register_view(_Base, unittest.TestCase):
     def test_POST_w_errors(self):
         import re
         SUMMARY_ERROR = re.compile('<h3[^>]*>There was a problem', re.MULTILINE)
-        FIELD_ERROR = re.compile('<p class="error"', re.MULTILINE)
+        FIELD_ERROR = re.compile('<p class="errorMsg"', re.MULTILINE)
         POST = {'email': '',
                 'register': '',
                }
@@ -291,7 +291,7 @@ class Test_confirm_registration_view(_Base, unittest.TestCase):
     def test_POST_w_validation_errors(self):
         import re
         SUMMARY_ERROR = re.compile('<h3[^>]*>There was a problem', re.MULTILINE)
-        FIELD_ERROR = re.compile('<p class="error"', re.MULTILINE)
+        FIELD_ERROR = re.compile('<p class="errorMsg"', re.MULTILINE)
         POST = {'email': '',
                 'token': '',
                 'confirm': '',
@@ -488,10 +488,7 @@ class Test_edit_account_view(_Base, unittest.TestCase):
         import re
         INPUT = re.compile('<input.* name="(?P<name>\w+)" '
                            'value="(?P<value>[^"]*)"', re.MULTILINE)
-        SELECT = re.compile('<select.* name="(?P<name>\w+)" ', re.MULTILINE)
-        OPTIONS = re.compile('<option.*? value="(?P<value>[^"]+)"')
-        OPTIONS_SEL = re.compile('<option.*? value="(?P<value>\w+)" '
-                                 'selected="(?P<selected>\w*)" ', re.MULTILINE)
+        SELECT = re.compile('<select.* name="(?P<name>\w+)"', re.MULTILINE)
         EMAIL = 'phred@example.com'
         ENVIRON = {'repoze.who.identity': {'repoze.who.userid': 'UUID'}}
         by_uuid, by_login, by_email = self._registerConfirmed()
@@ -520,20 +517,13 @@ class Test_edit_account_view(_Base, unittest.TestCase):
                                  ])
         selects = [x for x in SELECT.findall(rendered_form)]
         self.assertEqual(selects, ['question'])
-        options = [x for x in OPTIONS.findall(rendered_form)]
-        self.assertEqual(options, ['color', 'borncity', 'petname'])
-        options_sel = [x for x in OPTIONS_SEL.findall(rendered_form)]
-        self.assertEqual(options_sel, [])
 
     def test_GET_w_known_credentials_later_edit(self):
         import re
         from zope.password.password import SSHAPasswordManager
         INPUT = re.compile('<input.* name="(?P<name>\w+)" '
                            'value="(?P<value>[^"]*)"', re.MULTILINE)
-        SELECT = re.compile('<select.* name="(?P<name>\w+)" ', re.MULTILINE)
-        OPTIONS = re.compile('<option.*? value="(?P<value>[^"]+)"')
-        OPTIONS_SEL = re.compile('<option.*? value="(?P<value>[^"]+)" '
-                                 'selected="(?P<selected>\w+)"', re.MULTILINE)
+        SELECT = re.compile('<select.* name="(?P<name>\w+)"', re.MULTILINE)
         EMAIL = 'phred@example.com'
         ENVIRON = {'repoze.who.identity': {'repoze.who.userid': 'UUID'}}
         pwd_mgr = SSHAPasswordManager()
@@ -564,17 +554,13 @@ class Test_edit_account_view(_Base, unittest.TestCase):
                                  ])
         selects = [x for x in SELECT.findall(rendered_form)]
         self.assertEqual(selects, ['question'])
-        options = [x for x in OPTIONS.findall(rendered_form)]
-        self.assertEqual(options, ['color', 'borncity', 'petname'])
-        options_sel = [x for x in OPTIONS_SEL.findall(rendered_form)]
-        self.assertEqual(options_sel, [('borncity', 'True')])
 
     def test_POST_w_old_password_missing_but_required(self):
         import re
         from webob.multidict import MultiDict
         from zope.password.password import SSHAPasswordManager
         SUMMARY_ERROR = re.compile('<h3[^>]*>There was a problem', re.MULTILINE)
-        FIELD_ERROR = re.compile('<p class="error"', re.MULTILINE)
+        FIELD_ERROR = re.compile('<p class="errorMsg"', re.MULTILINE)
         OLD_EMAIL = 'old_phred@example.com'
         NEW_EMAIL = 'new_phred@example.com'
         ENVIRON = {'repoze.who.identity': {'repoze.who.userid': 'UUID'}}
@@ -617,7 +603,7 @@ class Test_edit_account_view(_Base, unittest.TestCase):
         from webob.multidict import MultiDict
         from zope.password.password import SSHAPasswordManager
         SUMMARY_ERROR = re.compile('<h3[^>]*>There was a problem', re.MULTILINE)
-        FIELD_ERROR = re.compile('<p class="error"', re.MULTILINE)
+        FIELD_ERROR = re.compile('<p class="errorMsg"', re.MULTILINE)
         OLD_EMAIL = 'old_phred@example.com'
         NEW_EMAIL = 'new_phred@example.com'
         ENVIRON = {'repoze.who.identity': {'repoze.who.userid': 'UUID'}}
@@ -660,7 +646,7 @@ class Test_edit_account_view(_Base, unittest.TestCase):
         from webob.multidict import MultiDict
         from zope.password.password import SSHAPasswordManager
         SUMMARY_ERROR = re.compile('<h3[^>]*>There was a problem', re.MULTILINE)
-        FIELD_ERROR = re.compile('<p class="error"', re.MULTILINE)
+        FIELD_ERROR = re.compile('<p class="errorMsg"', re.MULTILINE)
         OLD_EMAIL = 'old_phred@example.com'
         NEW_EMAIL = 'new_phred@example.com'
         ENVIRON = {'repoze.who.identity': {'repoze.who.userid': 'UUID'}}
@@ -703,7 +689,7 @@ class Test_edit_account_view(_Base, unittest.TestCase):
         from webob.multidict import MultiDict
         from zope.password.password import SSHAPasswordManager
         SUMMARY_ERROR = re.compile('<h3[^>]*>There was a problem', re.MULTILINE)
-        FIELD_ERROR = re.compile('<p class="error"', re.MULTILINE)
+        FIELD_ERROR = re.compile('<p class="errorMsg"', re.MULTILINE)
         OLD_EMAIL = 'old_phred@example.com'
         NEW_EMAIL = 'new_phred@example.com'
         ENVIRON = {'repoze.who.identity': {'repoze.who.userid': 'UUID'}}
