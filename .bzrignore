@@ -1,5 +1,5 @@
 Data.fs*
-venv
+venv*
 *.egg-info
 cartouche/templates/*.py
 docs/_build
