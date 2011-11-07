@@ -6,7 +6,7 @@
       to log out?</p>
 
   <form action="#" method="POST">
-   <input type="logout" value="Confirm" />
+   <input type="submit" name="logout" value="Confirm" />
   </form>
  </metal:slot>
 </metal:body>

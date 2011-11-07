@@ -96,7 +96,10 @@ def logout_view(context, request):
         after_logout_url = view_url(context, request, 'after_logout_url', '')
         return HTTPFound(location=after_logout_url, headers=headers)
     identity = request.environ.get('repoze.who.identity', {})
-    return {'userid': identity.get('repoze.who.userid')}
+    main_template = get_renderer('templates/main.pt')
+    return {'userid': identity.get('repoze.who.userid'),
+            'main_template': main_template.implementation(),
+           }
 
 
 RECOVERY_EMAIL = """
