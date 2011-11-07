@@ -18,12 +18,12 @@ class _Base(object):
     _tempdir = None
 
     def setUp(self):
-        from pyramid.config import Configurator
-        self.config = Configurator(autocommit=True)
-        self.config.begin()
+        from pyramid import testing
+        self.config = testing.setUp(autocommit=False)
 
     def tearDown(self):
-        self.config.end()
+        from pyramid import testing
+        testing.tearDown()
         if self._tempdir is not None:
             import shutil
             shutil.rmtree(self._tempdir)
@@ -345,29 +345,17 @@ class TestCartoucheAuthenticationPolicyDirective(_Base, unittest.TestCase):
     def test_it_defaults(self):
         from pyramid.interfaces import IAuthenticationPolicy
         reg = self.config.registry
-        context = self.config._ctx = self.config._make_context()
+        context = DummyZCMLContext(self.config)
         self._callFUT(context)
-        actions = extract_actions(context.actions)
-        self.assertEqual(len(actions), 1)
-        regadapt = actions[0]
-        self.assertEqual(regadapt['discriminator'], IAuthenticationPolicy)
-        self.assertEqual(regadapt['callable'], None)
-        self.assertEqual(regadapt['args'], ())
         policy = reg.getUtility(IAuthenticationPolicy)
         self.assertEqual(policy._identifier_id, 'IDENTIFIER')
 
     def test_it(self):
         reg = self.config.registry
         from pyramid.interfaces import IAuthenticationPolicy
-        context = self.config._ctx = self.config._make_context()
+        context = DummyZCMLContext(self.config)
         config_file = self._makeWhoConfig('firstbase.ini')
         self._callFUT(context, config_file, 'something')
-        actions = extract_actions(context.actions)
-        self.assertEqual(len(actions), 1)
-        regadapt = actions[0]
-        self.assertEqual(regadapt['discriminator'], IAuthenticationPolicy)
-        self.assertEqual(regadapt['callable'], None)
-        self.assertEqual(regadapt['args'], ())
         policy = reg.getUtility(IAuthenticationPolicy)
         self.assertEqual(policy._config_file, config_file)
         self.assertEqual(policy._identifier_id, 'something')
@@ -412,3 +400,21 @@ def extract_actions(native):
         d['order'] = order
         L.append(d)
     return L
+
+class DummyZCMLContext(object):
+    def __init__(self, config):
+        if hasattr(config, '_make_context'): # pragma: no cover
+            # 1.0, 1.1 b/c
+            config._ctx = config._make_context()
+        self.registry = config.registry
+        self.package = config.package
+        self.autocommit = config.autocommit
+        self.route_prefix = getattr(config, 'route_prefix', None)
+        self.basepath = getattr(config, 'basepath', None)
+        self.includepath = getattr(config, 'includepath', ())
+        self.info = getattr(config, 'info', '')
+        self.actions = config._ctx.actions
+        self._ctx = config._ctx
+
+    def action(self, *arg, **kw): # pragma: no cover
+        self._ctx.action(*arg, **kw)
