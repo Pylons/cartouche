@@ -35,4 +35,16 @@
      renderer="templates/testing_debug.pt"
      />
 
+  <!-- Use ZODB for storing pending registration info. -->
+  <adapter provides="cartouche.interfaces.IRegistrations"
+           name="pending"
+           for="*"
+           factory=".persistence.PendingRegistrations" />
+
+  <!-- Use ZODB for storing confirmed registration info. -->
+  <adapter provides="cartouche.interfaces.IRegistrations"
+           name="confirmed"
+           for="*"
+           factory=".persistence.ConfirmedRegistrations" />
+
 </configure>
