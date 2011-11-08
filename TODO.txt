@@ -156,3 +156,5 @@ User / Group Administration
       * Key member UUID -> group names
 
 - [X] Add a command-line script to make an existing user an admin.
+
+- [X] Add an admin overview view showing pending / confirmed users.

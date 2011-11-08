@@ -28,7 +28,9 @@ from cartouche.interfaces import IRegistrationInfo
 class Root(PersistentMapping):
     implements(IRoot)
     __parent__ = __name__ = None
-    __acl__ = [(Allow, Authenticated, ('view', 'edit_own_account'))]
+    __acl__ = [(Allow, Authenticated, ('view', 'edit_own_account')),
+               (Allow, 'g:admin', ('admin',)),
+              ]
     def __repr__(self):
         return '<Root object;  keys: %s>' % ', '.join(self.keys())
 

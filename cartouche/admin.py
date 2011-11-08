@@ -1,11 +1,28 @@
 import os
 import sys
 
+from pyramid.renderers import get_renderer
 from pyramid.paster import bootstrap
 import transaction
 
 from cartouche.interfaces import IRegistrations
 from cartouche.persistence import ConfirmedRegistrations
+from cartouche.persistence import PendingRegistrations
+
+def admin_view(context, request):
+    pending = request.registry.queryAdapter(context, IRegistrations,
+                                            name='pending')
+    if pending is None:
+        pending = PendingRegistrations(context)
+    confirmed = request.registry.queryAdapter(context, IRegistrations,
+                                              name='confirmed')
+    if confirmed is None:
+        confirmed = ConfirmedRegistrations(context)
+    main_template = get_renderer('templates/main.pt')
+    return {'main_template': main_template.implementation(),
+            'pending': sorted(pending),
+            'confirmed': sorted(confirmed),
+           }
 
 
 def add_admin_user():
