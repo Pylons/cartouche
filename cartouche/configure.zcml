@@ -14,7 +14,7 @@
   <aclauthorizationpolicy/>
 
   <view
-     context=".interfaces.Root"
+     context=".interfaces.IRoot"
      name="register.html"
      view=".registration.register_view"
      renderer="templates/register.pt"
@@ -64,9 +64,30 @@
      />
 
   <view
-     context=".interfaces.Root"
+     context=".interfaces.IRoot"
      name="admin.html"
-     view=".admin.admin_view"
+     view=".admin.admin_confirmed"
+     request_method="GET"
+     request_param="confirmed"
+     renderer="templates/admin_registration.pt"
+     permission="admin"
+     />
+
+  <view
+     context=".interfaces.IRoot"
+     name="admin.html"
+     view=".admin.admin_pending"
+     request_method="GET"
+     request_param="pending"
+     renderer="templates/admin_registration.pt"
+     permission="admin"
+     />
+
+  <view
+     context=".interfaces.IRoot"
+     name="admin.html"
+     view=".admin.admin_overview"
+     request_method="GET"
      renderer="templates/admin.pt"
      permission="admin"
      />

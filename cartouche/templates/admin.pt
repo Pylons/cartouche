@@ -15,7 +15,7 @@
      <th align="left">Token</th>
     </tr>
     <tr tal:repeat="(email, record) pending">
-     <td>${email}</td>
+     <td><a href="?pending=${email}">${email}</a></td>
      <td>${record.token}</td>
     </tr>
    </table>
@@ -23,22 +23,22 @@
    <h3> confirmed registrations </h3>
    <table>
     <tr>
-     <th align="left">UUID</th>
-     <th align="left">E-mail</th>
      <th align="left">Login</th>
+     <th align="left">E-mail</th>
      <th align="left">Hashed password</th>
      <th align="left">Security question</th>
      <th align="left">Security answer</th>
+     <th align="left">UUID</th>
      <th align="left">Token</th>
     </tr>
     <tr tal:repeat="(key, row) confirmed">
      <tal:if tal:condition="not isinstance(row, basestring)">
-        <td>${row.uuid}</td>
+        <td><a href="?confirmed=${row.login}">${row.login}</a></td>
         <td>${row.email}</td>
-        <td>${row.login}</td>
-        <td>${row.password}</td>
+        <td>${row.password[6:16]}...</td>
         <td>${row.security_question}</td>
         <td>${row.security_answer}</td>
+        <td>${row.uuid}</td>
         <td>${row.token}</td>
      </tal:if>
     </tr>
