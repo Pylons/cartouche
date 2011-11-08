@@ -27,6 +27,8 @@ class ICartouche(Interface):
     by_uuid = Attribute(u'Confirmed registrations, keyed by UUID')
     by_email = Attribute(u'Index, email -> UUID')
     by_login = Attribute(u'Index, login name -> UUID')
+    group_users = Attribute(u'Index, group name -> [UUID]')
+    user_groups = Attribute(u'Index, UUID -> [group_name]')
 
 
 class ITokenGenerator(Interface):

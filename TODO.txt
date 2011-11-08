@@ -149,4 +149,8 @@ Password Reset
 User / Group Administration
 ---------------------------
 
-- [_] TBD
+- [X] Implement a storage for groups.
+
+      * Key group name -> member UUIDs
+
+      * Key member UUID -> group names

@@ -41,6 +41,8 @@ class Cartouche(Persistent):
         self.by_uuid = OOBTree()
         self.by_email = OOBTree()
         self.by_login = OOBTree()
+        self.group_users = OOBTree()
+        self.user_groups = OOBTree()
 
 
 class PendingRegistrationInfo(Persistent):
