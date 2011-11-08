@@ -14,7 +14,7 @@
   <aclauthorizationpolicy/>
 
   <view
-     context=".models.Root"
+     context=".interfaces.Root"
      name="register.html"
      view=".registration.register_view"
      renderer="templates/register.pt"
@@ -64,7 +64,7 @@
      />
 
   <view
-     context=".models.Root"
+     context=".interfaces.Root"
      name="admin.html"
      view=".admin.admin_view"
      renderer="templates/admin.pt"
