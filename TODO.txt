@@ -143,7 +143,7 @@ Password Reset
 
       * Document using the policy.
 
-- [_] Extend ``effective_principals`` to include groups defined in admin UI.
+- [X] Extend ``effective_principals`` to include groups defined in admin UI.
 
 
 User / Group Administration

@@ -109,8 +109,8 @@ class PyramidPolicy(object):
 
     def _getGroups(self, uuid, request):
         confirmed = self._getConfirmed(request)
-        record = confirmed.get(uuid)
-        return list(getattr(record, 'groups', ()))
+        confirmed._getCartouche()
+        return confirmed._getMapping('user_groups').get(uuid) or []
 
 
 def cartoucheAuthenticationPolicy(_context, config_file, identifier_name):
