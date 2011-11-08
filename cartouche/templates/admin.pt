@@ -1,40 +1,45 @@
 <metal:body metal:use-macro="main_template">
  <metal:slot metal:fill-slot="main">
+   <style type="text/css">
+   th, td {
+     padding: 0.25em;
+   }
+   </style>
 
    <h1>cartouche admin</h1>
 
    <h3> pending registrations </h3>
    <table>
     <tr>
-     <th align="left" style="padding: .5em !important">E-mail</th>
-     <th align="left" style="padding: .5em !important">Token</th>
+     <th align="left">E-mail</th>
+     <th align="left">Token</th>
     </tr>
     <tr tal:repeat="(email, record) pending">
-     <td style="padding: .5em !important">${email}</td>
-     <td style="padding: .5em !important">${record.token}</td>
+     <td>${email}</td>
+     <td>${record.token}</td>
     </tr>
    </table>
 
    <h3> confirmed registrations </h3>
    <table>
     <tr>
-     <th align="left" style="padding: .5em !important">UUID</th>
-     <th align="left" style="padding: .5em !important">E-mail</th>
-     <th align="left" style="padding: .5em !important">Login</th>
-     <th align="left" style="padding: .5em !important">Hashed password</th>
-     <th align="left" style="padding: .5em !important">Security question</th>
-     <th align="left" style="padding: .5em !important">Security answer</th>
-     <th align="left" style="padding: .5em !important">Token</th>
+     <th align="left">UUID</th>
+     <th align="left">E-mail</th>
+     <th align="left">Login</th>
+     <th align="left">Hashed password</th>
+     <th align="left">Security question</th>
+     <th align="left">Security answer</th>
+     <th align="left">Token</th>
     </tr>
     <tr tal:repeat="(key, row) confirmed">
      <tal:if tal:condition="not isinstance(row, basestring)">
-        <td style="padding: .5em !important">${row.uuid}</td>
-        <td style="padding: .5em !important">${row.email}</td>
-        <td style="padding: .5em !important">${row.login}</td>
-        <td style="padding: .5em !important">${row.password}</td>
-        <td style="padding: .5em !important">${row.security_question}</td>
-        <td style="padding: .5em !important">${row.security_answer}</td>
-        <td style="padding: .5em !important">${row.token}</td>
+        <td>${row.uuid}</td>
+        <td>${row.email}</td>
+        <td>${row.login}</td>
+        <td>${row.password}</td>
+        <td>${row.security_question}</td>
+        <td>${row.security_answer}</td>
+        <td>${row.token}</td>
      </tal:if>
     </tr>
    </table>
