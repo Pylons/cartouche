@@ -63,6 +63,14 @@
      renderer="templates/login.pt"
      />
 
+  <view
+     context=".models.Root"
+     name="admin.html"
+     view=".admin.admin_view"
+     renderer="templates/admin.pt"
+     permission="admin"
+     />
+
   <static
      name="static"
      path="static"

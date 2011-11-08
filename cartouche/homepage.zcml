@@ -30,15 +30,6 @@
      renderer="templates/testing_debug.pt"
      />
 
-  <!-- Admin pending / confirmed registration info. -->
-  <view
-     context=".models.Root"
-     name="admin.html"
-     view=".admin.admin_view"
-     renderer="templates/admin.pt"
-     permission="admin"
-     />
-
   <!-- Use ZODB for storing pending registration info. -->
   <adapter provides="cartouche.interfaces.IRegistrations"
            name="pending"
