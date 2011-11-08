@@ -154,3 +154,5 @@ User / Group Administration
       * Key group name -> member UUIDs
 
       * Key member UUID -> group names
+
+- [X] Add a command-line script to make an existing user an admin.
