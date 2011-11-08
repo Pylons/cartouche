@@ -69,6 +69,8 @@ class PyramidPolicyTests(_Base, unittest.TestCase):
                 self.by_uuid = {}
                 self.by_login = {}
                 self.by_email = {}
+                self.group_users = {}
+                self.user_groups = {}
         return DummyCartouche()
 
     def _registerConfirmed(self):
@@ -76,6 +78,8 @@ class PyramidPolicyTests(_Base, unittest.TestCase):
         by_uuid = {}
         by_login = {}
         by_email = {}
+        group_users = {}
+        user_groups = {}
         class DummyConfirmed:
             def __init__(self, context):
                 pass
@@ -105,6 +109,14 @@ class PyramidPolicyTests(_Base, unittest.TestCase):
                 del by_uuid[key]
                 del by_login[info.login]
                 del by_email[info.email]
+            def _getCartouche(self):
+                pass
+            def _getMapping(self, attr):
+                if attr == 'group_users':
+                    return group_users
+                if attr == 'user_groups':
+                    return user_groups
+                raise KeyError(attr)
         self.config.registry.registerAdapter(DummyConfirmed,
                                              (None,), IRegistrations,
                                              name='confirmed')
