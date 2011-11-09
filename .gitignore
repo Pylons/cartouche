@@ -3,3 +3,4 @@ venv*
 *.pyc
 .coverage
 var
+docs/_build
