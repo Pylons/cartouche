@@ -12,6 +12,7 @@ Contents:
 
    configuration
    without_repoze_who
+   extending
    api
 
 Indices and tables
