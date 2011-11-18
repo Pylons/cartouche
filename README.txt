@@ -53,6 +53,7 @@ If you have a working MTA on localhost:25::
 
   $ /path/to/venv/bin/paster serve development.ini
 
-If you don't have working MTA on localhost:25::
+If you don't have working MTA on localhost:25, the ``no_mail`` configuration
+prints any sent mail to the console::
 
   $ /path/to/venv/bin/paster serve development.ini --app-name=no_mail
