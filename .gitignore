@@ -4,3 +4,4 @@ venv*
 .coverage
 var
 docs/_build
+build
