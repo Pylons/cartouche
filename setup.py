@@ -71,4 +71,8 @@ setup(name='cartouche',
       add_cartouche_admin = cartouche.admin:add_admin_user
       """,
       paster_plugins=['pyramid'],
+      extras_require = {
+        'testing': ['nose', 'coverage'],
+        'docs': ['Sphinx', 'repoze.sphinx.autointerface'],
+      },
 )
