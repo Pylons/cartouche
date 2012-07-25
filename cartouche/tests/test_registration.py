@@ -486,7 +486,7 @@ class Test_edit_account_view(_Base, unittest.TestCase):
 
     def test_GET_w_known_credentials_initial_edit(self):
         import re
-        INPUT = re.compile('<input.* name="(?P<name>\w+)" '
+        INPUT = re.compile('<input.* name="(?P<name>[\w-]+)" '
                            'value="(?P<value>[^"]*)"', re.MULTILINE)
         SELECT = re.compile('<select.* name="(?P<name>\w+)"', re.MULTILINE)
         EMAIL = 'phred@example.com'
@@ -511,8 +511,8 @@ class Test_edit_account_view(_Base, unittest.TestCase):
         self.assertEqual(inputs, [('login_name', EMAIL),
                                   ('email', EMAIL),
                                   ('old_password', ''), # hidden
-                                  ('value', ''),
-                                  ('confirm', ''),
+                                  ('password', ''),
+                                  ('password-confirm', ''),
                                   ('answer', ''),
                                  ])
         selects = [x for x in SELECT.findall(rendered_form)]
@@ -521,7 +521,7 @@ class Test_edit_account_view(_Base, unittest.TestCase):
     def test_GET_w_known_credentials_later_edit(self):
         import re
         from zope.password.password import SSHAPasswordManager
-        INPUT = re.compile('<input.* name="(?P<name>\w+)" '
+        INPUT = re.compile('<input.* name="(?P<name>[\w-]+)" '
                            'value="(?P<value>[^"]*)"', re.MULTILINE)
         SELECT = re.compile('<select.* name="(?P<name>\w+)"', re.MULTILINE)
         EMAIL = 'phred@example.com'
@@ -548,8 +548,8 @@ class Test_edit_account_view(_Base, unittest.TestCase):
         self.assertEqual(inputs, [('login_name', 'before'),
                                   ('email', EMAIL),
                                   ('old_password', ''),
-                                  ('value', ''),
-                                  ('confirm', ''),
+                                  ('password', ''),
+                                  ('password-confirm', ''),
                                   ('answer', 'FXBG'),
                                  ])
         selects = [x for x in SELECT.findall(rendered_form)]
@@ -620,8 +620,8 @@ class Test_edit_account_view(_Base, unittest.TestCase):
                           ('email', NEW_EMAIL),
                           ('old_password', 'bogus'),
                           ('__start__', 'password:mapping'),
-                          ('value', 'newpassword'),
-                          ('confirm', 'newpassword'),
+                          ('password', 'newpassword'),
+                          ('password-confirm', 'newpassword'),
                           ('__end__', 'password:mapping'),
                           ('__start__', 'security:mapping'),
                           ('question', 'petname'),
@@ -663,8 +663,8 @@ class Test_edit_account_view(_Base, unittest.TestCase):
                           ('email', NEW_EMAIL),
                           ('old_password', 'old_password'),
                           ('__start__', 'password:mapping'),
-                          ('value', 'newpassword'),
-                          ('confirm', 'mismatch'),
+                          ('password', 'newpassword'),
+                          ('password-confirm', 'mismatch'),
                           ('__end__', 'password:mapping'),
                           ('__start__', 'security:mapping'),
                           ('question', 'petname'),
@@ -708,8 +708,8 @@ class Test_edit_account_view(_Base, unittest.TestCase):
                           ('email', NEW_EMAIL),
                           ('old_password', 'old_password'),
                           ('__start__', 'password:mapping'),
-                          ('value', 'newpassword'),
-                          ('confirm', 'newpassword'),
+                          ('password', 'newpassword'),
+                          ('password-confirm', 'newpassword'),
                           ('__end__', 'password:mapping'),
                           ('__start__', 'security:mapping'),
                           ('question', 'petname'),
@@ -749,8 +749,8 @@ class Test_edit_account_view(_Base, unittest.TestCase):
                           ('email', NEW_EMAIL),
                           ('old_password', 'old_password'),
                           ('__start__', 'password:mapping'),
-                          ('value', 'newpassword'),
-                          ('confirm', 'newpassword'),
+                          ('password', 'newpassword'),
+                          ('password-confirm', 'newpassword'),
                           ('__end__', 'password:mapping'),
                           ('__start__', 'security:mapping'),
                           ('question', 'petname'),
@@ -800,8 +800,8 @@ class Test_edit_account_view(_Base, unittest.TestCase):
                           ('email', NEW_EMAIL),
                           ('old_password', 'old_password'),
                           ('__start__', 'password:mapping'),
-                          ('value', 'newpassword'),
-                          ('confirm', 'newpassword'),
+                          ('password', 'newpassword'),
+                          ('password-confirm', 'newpassword'),
                           ('__end__', 'password:mapping'),
                           ('__start__', 'security:mapping'),
                           ('question', 'petname'),
