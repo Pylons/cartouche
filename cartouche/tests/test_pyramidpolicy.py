@@ -415,6 +415,7 @@ def extract_actions(native):
 
 class DummyZCMLContext(object):
     def __init__(self, config):
+        from pyramid.config import Configurator
         if hasattr(config, '_make_context'): # pragma: no cover
             # 1.0, 1.1 b/c
             config._ctx = config._make_context()
@@ -427,6 +428,9 @@ class DummyZCMLContext(object):
         self.info = getattr(config, 'info', '')
         self.actions = config._ctx.actions
         self._ctx = config._ctx
+        # make pyramid_zcml >= 0.9.2 happy
+        self.config_class = Configurator
+        self.introspection = True
 
     def action(self, *arg, **kw): # pragma: no cover
         self._ctx.action(*arg, **kw)

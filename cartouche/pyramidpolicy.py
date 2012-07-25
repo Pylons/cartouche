@@ -13,10 +13,17 @@
 ##############################################################################
 import os
 
-from pyramid.config import Configurator
 from pyramid.interfaces import IAuthenticationPolicy
 from pyramid.security import Authenticated
 from pyramid.security import Everyone
+
+try:
+    from pyramid_zcml import with_context
+except ImportError:
+    from pyramid.config import Configurator
+    def with_context(_context):
+        return Configurator.with_context(_context)
+    
 from repoze.who.config import make_api_factory_with_config as FactoryFactory
 from zope.interface import Interface
 from zope.interface import implements
@@ -117,5 +124,5 @@ def cartoucheAuthenticationPolicy(_context, config_file, identifier_name):
     policy = PyramidPolicy(config_file, identifier_name)
     # authentication policies must be registered eagerly so they can
     # be found by the view registration machinery
-    config = Configurator.with_context(_context)
+    config = with_context(_context)
     config._set_authentication_policy(policy)
