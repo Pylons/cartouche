@@ -19,7 +19,7 @@ from pyramid.security import Everyone
 
 try:
     from pyramid_zcml import with_context
-except ImportError:
+except ImportError: #pragma NO COVER
     from pyramid.config import Configurator
     def with_context(_context):
         return Configurator.with_context(_context)
