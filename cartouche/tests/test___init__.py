@@ -29,3 +29,21 @@ class Test_appmaker(unittest.TestCase):
         zodb_root = {}
         root = self._callFUT(zodb_root)
         self.assertTrue(isinstance(root, Root))
+
+class Test_main(unittest.TestCase):
+
+    def _callFUT(self, global_config, **settings):
+        from cartouche import main
+        return main(global_config, **settings)
+
+    def test_wo_zodb_uri(self):
+        self.assertRaises(ValueError, self._callFUT, None)
+
+    def test_w_zodb_uri(self):
+        class DummyRequest(object):
+            def __init__(self, **kw):
+                self.environ = kw
+        app = self._callFUT(None, zodb_uri='memory://')
+        request = DummyRequest()
+        root = app.root_factory(request)
+        self.assertEqual(root.data, {})
