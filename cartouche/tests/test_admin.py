@@ -13,8 +13,7 @@
 ##############################################################################
 import unittest
 
-
-class Test_admin_overview(unittest.TestCase):
+class _Base(object):
 
     def setUp(self):
         from pyramid.config import Configurator
@@ -24,14 +23,6 @@ class Test_admin_overview(unittest.TestCase):
     def tearDown(self):
         self.config.end()
 
-    def _callFUT(self, context=None, request=None):
-        from cartouche.admin import admin_overview
-        if context is None:
-            context = self._makeContext()
-        if request is None:
-            request = self._makeRequest()
-        return admin_overview(context, request)
-
     def _makeContext(self, **kw):
         from pyramid.testing import DummyModel
         cartouche = kw.pop('cartouche', DummyCartouche())
@@ -40,6 +31,17 @@ class Test_admin_overview(unittest.TestCase):
     def _makeRequest(self, **kw):
         from pyramid.testing import DummyRequest
         return DummyRequest(**kw)
+
+
+class Test_admin_overview(_Base, unittest.TestCase):
+
+    def _callFUT(self, context=None, request=None):
+        from cartouche.admin import admin_overview
+        if context is None:
+            context = self._makeContext()
+        if request is None:
+            request = self._makeRequest()
+        return admin_overview(context, request)
 
     def test_wo_adapters_wo_pending_wo_confirmed(self):
         context = self._makeContext()
@@ -79,6 +81,60 @@ class Test_admin_overview(unittest.TestCase):
         request = self._makeRequest()
         info = self._callFUT(context, request)
         self.assertEqual(info['confirmed'], CONFIRMED)
+
+
+class Test_admin_pending(_Base, unittest.TestCase):
+
+    def _callFUT(self, context=None, request=None):
+        from cartouche.admin import admin_pending
+        if context is None:
+            context = self._makeContext()
+        if request is None:
+            request = self._makeRequest()
+        return admin_pending(context, request)
+
+    def test_wo_request_param(self):
+        context = self._makeContext()
+        request = self._makeRequest()
+        self.assertRaises(KeyError, self._callFUT, context, request)
+
+    def test_w_request_param_miss(self):
+        from pyramid.exceptions import HTTPNotFound
+        context = self._makeContext()
+        request = self._makeRequest(params={'pending': 'nonesuch@example.com'})
+        response = self._callFUT(context, request)
+        self.assertTrue(isinstance(response, HTTPNotFound))
+
+    def test_w_request_param_hit_wo_adapter(self):
+        EMAIL = 'abc@example.com'
+        TOKEN = '12345'
+        class DummyPending(object):
+            email = EMAIL
+            token = TOKEN
+        cartouche = DummyCartouche()
+        cartouche.pending[EMAIL] = DummyPending()
+        context = self._makeContext(cartouche=cartouche)
+        request = self._makeRequest(params={'pending': EMAIL})
+        info = self._callFUT(context, request)
+        self.assertEqual(info['email'], EMAIL)
+        self.assertEqual(info['token'], TOKEN)
+
+    def test_w_request_param_hit_w_adapter(self):
+        from cartouche.interfaces import IRegistrations
+        EMAIL = 'abc@example.com'
+        TOKEN = '12345'
+        class DummyPending(object):
+            email = EMAIL
+            token = TOKEN
+        PENDING = {EMAIL: DummyPending()}
+        self.config.registry.registerAdapter(lambda x: PENDING,
+                                             (None,), IRegistrations,
+                                             name='pending')
+        context = self._makeContext()
+        request = self._makeRequest(params={'pending': EMAIL})
+        info = self._callFUT(context, request)
+        self.assertEqual(info['email'], EMAIL)
+        self.assertEqual(info['token'], TOKEN)
 
 
 class DummyCartouche(object):
