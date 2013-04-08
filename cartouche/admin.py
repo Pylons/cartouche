@@ -63,6 +63,7 @@ def admin_confirmed(context, request):
             'page_title': 'Edit Confirmed Registration',
             'login': login,
             'uuid': record.uuid,
+            'email': record.email,
             'password': record.password,
             'token': record.token,
             'security_question': record.security_question,
