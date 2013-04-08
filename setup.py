@@ -68,7 +68,7 @@ setup(name='cartouche',
       [paste.app_factory]
       main = cartouche:main
       [console_scripts]
-      add_cartouche_admin = cartouche.admin:add_admin_user
+      add_cartouche_admin = cartouche.scripts.add_cartouche_admin:main
       """,
       paster_plugins=['pyramid'],
       extras_require = {
