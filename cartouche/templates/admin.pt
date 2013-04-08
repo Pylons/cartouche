@@ -6,40 +6,30 @@
    }
    </style>
 
-   <h1>cartouche admin</h1>
+   <h1>Cartouche Admin</h1>
 
-   <h3> pending registrations </h3>
+   <h3> Pending Registrations </h3>
    <table>
     <tr>
      <th align="left">E-mail</th>
-     <th align="left">Token</th>
     </tr>
     <tr tal:repeat="(email, record) pending">
      <td><a href="?pending=${email}">${email}</a></td>
-     <td>${record.token}</td>
     </tr>
    </table>
 
-   <h3> confirmed registrations </h3>
+   <hr />
+
+   <h3> Confirmed Registrations </h3>
    <table>
     <tr>
      <th align="left">Login</th>
      <th align="left">E-mail</th>
-     <th align="left">Hashed password</th>
-     <th align="left">Security question</th>
-     <th align="left">Security answer</th>
-     <th align="left">UUID</th>
-     <th align="left">Token</th>
     </tr>
     <tr tal:repeat="(key, row) confirmed">
      <tal:if tal:condition="not isinstance(row, basestring)">
         <td><a href="?confirmed=${row.login}">${row.login}</a></td>
         <td>${row.email}</td>
-        <td>${row.password[6:16]}...</td>
-        <td>${row.security_question}</td>
-        <td>${row.security_answer}</td>
-        <td>${row.uuid}</td>
-        <td>${row.token}</td>
      </tal:if>
     </tr>
    </table>
