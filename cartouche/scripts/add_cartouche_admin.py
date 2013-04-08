@@ -16,7 +16,7 @@ def main(argv=None):
         config_uri, login = sys.argv[1:]
     except:
         print __doc__ % sys.argv[0]
-        sys.exit[2]
+        sys.exit(2)
 
     ini_file = config_uri.split('#')[0]
 
@@ -25,7 +25,7 @@ def main(argv=None):
         print
         print 'Invalid config file:', ini_file
         print
-        sys.exit[2]
+        sys.exit(2)
 
     env = bootstrap(config_uri)
     request, root = env['request'], env['root']
@@ -40,7 +40,7 @@ def main(argv=None):
         print
         print 'Invalid login:', login
         print
-        sys.exit[2]
+        sys.exit(2)
 
     admins = confirmed._getMapping('group_users').get('g:admin') or []
     if info.uuid not in admins:
