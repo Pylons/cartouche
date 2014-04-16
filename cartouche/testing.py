@@ -2,23 +2,23 @@
 
 from pyramid.renderers import get_renderer
 from repoze.sendmail.interfaces import IMailDelivery
-from zope.interface import implements
+from zope.interface import implementer
 from zope.password.password import SSHAPasswordManager
 
 from cartouche.interfaces import IRegistrations
 
 DIVIDER =  "#" * 80
 
+@implementer(IMailDelivery)
 class FauxMailDelivery(object):
-    implements(IMailDelivery)
 
     def send(self, from_addr, to_addrs, message):
-        print DIVIDER
-        print 'From:    %s' % from_addr
-        print 'To:      %s' % ', '.join(to_addrs)
-        print '-' * 80
-        print message
-        print DIVIDER
+        print(DIVIDER)
+        print('From:    %s' % from_addr)
+        print('To:      %s' % ', '.join(to_addrs))
+        print('-' * 80)
+        print(message)
+        print(DIVIDER)
 
 
 class Dummy(object):
@@ -26,8 +26,8 @@ class Dummy(object):
         self.__dict__.update(kw)
 
 def _factory(_make_info):
+    @implementer(IRegistrations)
     class FauxRegistrations(object):
-        implements(IRegistrations)
         _store = {} # yes, a mutable default
 
         def __init__(self, context):
@@ -38,21 +38,21 @@ def _factory(_make_info):
                 self.remove(key)
             except KeyError:
                 pass
-            print DIVIDER
-            print 'Setting registration for key: %s' % key
+            print(DIVIDER)
+            print('Setting registration for key: %s' % key)
             info = _make_info(key, kw)
             self._store[key] = info
             login = kw.get('login')
             if login is not None:
-                print '-' * 80
-                print 'login:', login
+                print('-' * 80)
+                print('login:', login)
                 self._store[login] = key
             email = kw.get('email')
             if email is not None:
-                print '-' * 80
-                print 'email:', email
+                print('-' * 80)
+                print('email:', email)
                 self._store[email] = key
-            print DIVIDER
+            print(DIVIDER)
 
         def get(self, key, default=None):
             return self._store.get(key, default)
@@ -72,9 +72,9 @@ def _factory(_make_info):
         def remove(self, key, default=None):
             old_info = self._store.get(key)
             if old_info is not None:
-                print DIVIDER
-                print 'Removing registration for key: %s' % key
-                print DIVIDER
+                print(DIVIDER)
+                print('Removing registration for key: %s' % key)
+                print(DIVIDER)
                 del self._store[key]
                 login = getattr(old_info, 'login', None)
                 if login is not None and login in self._store:

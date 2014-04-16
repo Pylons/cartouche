@@ -13,7 +13,7 @@
 ##############################################################################
 
 from pyramid.traversal import find_root
-from zope.interface import implements
+from zope.interface import implementer
 
 from cartouche.interfaces import IRegistrations
 from cartouche.models import Cartouche
@@ -85,10 +85,10 @@ class _RegistrationsBase(object):
         self._getMapping()[key] = record
 
 
+@implementer(IRegistrations)
 class PendingRegistrations(_RegistrationsBase):
     """ Adapter for looking up pending registrations, keyed by email.
     """
-    implements(IRegistrations)
     ATTR = 'pending'
 
     def _makeInfo(self, key, **kw):
@@ -107,10 +107,10 @@ class PendingRegistrations(_RegistrationsBase):
         raise NotImplementedError
 
 
+@implementer(IRegistrations)
 class ConfirmedRegistrations(_RegistrationsBase):
     """ Adapter for looking up confirmed registrations, keyed by UUID.
     """
-    implements(IRegistrations)
     ATTR = 'by_uuid'
 
     def get_by_email(self, email, default=None):

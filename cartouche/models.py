@@ -17,7 +17,7 @@ from persistent import Persistent
 from persistent.mapping import PersistentMapping
 from pyramid.security import Allow
 from pyramid.security import Authenticated
-from zope.interface import implements
+from zope.interface import implementer
 
 from cartouche.interfaces import IRoot
 from cartouche.interfaces import ICartouche
@@ -25,8 +25,8 @@ from cartouche.interfaces import IPendingRegistrationInfo
 from cartouche.interfaces import IRegistrationInfo
 
 
+@implementer(IRoot)
 class Root(PersistentMapping):
-    implements(IRoot)
     __parent__ = __name__ = None
     __acl__ = [(Allow, Authenticated, ('view', 'edit_own_account')),
                (Allow, 'g:admin', ('admin',)),
@@ -35,8 +35,8 @@ class Root(PersistentMapping):
         return '<Root object;  keys: %s>' % ', '.join(self.keys())
 
 
+@implementer(ICartouche)
 class Cartouche(Persistent):
-    implements(ICartouche)
 
     def __init__(self):
         self.pending = OOBTree()
@@ -47,16 +47,16 @@ class Cartouche(Persistent):
         self.user_groups = OOBTree()
 
 
+@implementer(IPendingRegistrationInfo)
 class PendingRegistrationInfo(Persistent):
-    implements(IPendingRegistrationInfo)
 
     def __init__(self, email, token):
         self.email = email
         self.token = token
 
 
+@implementer(IRegistrationInfo)
 class RegistrationInfo(Persistent):
-    implements(IRegistrationInfo)
 
     def __init__(self,
                  uuid,

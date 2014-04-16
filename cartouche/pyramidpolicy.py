@@ -26,7 +26,7 @@ except ImportError: #pragma NO COVER
     
 from repoze.who.config import make_api_factory_with_config as FactoryFactory
 from zope.interface import Interface
-from zope.interface import implements
+from zope.interface import implementer
 from zope.schema import ASCIILine
 from zope.schema import TextLine
 
@@ -39,8 +39,8 @@ class ICartouchePolicyDirective(Interface):
     identifier_name = TextLine(title=u'identitfier_name', required=True)
 
 
+@implementer(IAuthenticationPolicy)
 class PyramidPolicy(object):
-    implements(IAuthenticationPolicy)
 
     def __init__(self, config_file, identifier_id):
         config_file = self._config_file = os.path.abspath(

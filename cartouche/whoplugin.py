@@ -16,15 +16,15 @@ from pyramid.threadlocal import get_current_registry
 from pyramid.threadlocal import get_current_request
 from repoze.who.interfaces import IAuthenticator
 from repoze.zodbconn.finder import PersistentApplicationFinder
-from zope.interface import implements
+from zope.interface import implementer
 from zope.password.password import SSHAPasswordManager
 
 from cartouche import appmaker
 from cartouche.interfaces import IRegistrations
 from cartouche.persistence import ConfirmedRegistrations
 
+@implementer(IAuthenticator)
 class WhoPlugin(object):
-    implements(IAuthenticator)
     _finder = None
 
     def __init__(self, zodb_uri):
