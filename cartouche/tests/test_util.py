@@ -226,7 +226,7 @@ class Test_sendGeneratedPassword(_Base, unittest.TestCase):
         self.assertEqual(record.login, 'phred')
         password = record.password
         self.assertNotEqual(password, 'old_password')
-        self.failUnless(password.startswith('{SSHA}'))
+        self.failUnless(password.startswith(b'{SSHA}'))
         self.assertEqual(record.security_question, 'question')
         self.assertEqual(record.security_answer, 'answer')
         self.assertEqual(record.token, None)
@@ -274,7 +274,7 @@ class Test_sendGeneratedPassword(_Base, unittest.TestCase):
         self.assertEqual(record.login, 'phred')
         password = record.password
         self.assertNotEqual(password, 'old_password')
-        self.failUnless(password.startswith('{SSHA}'))
+        self.failUnless(password.startswith(b'{SSHA}'))
         self.assertEqual(record.security_question, 'question')
         self.assertEqual(record.security_answer, 'answer')
         self.assertEqual(record.token, None)

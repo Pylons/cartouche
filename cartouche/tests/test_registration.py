@@ -382,7 +382,7 @@ class Test_confirm_registration_view(_Base, unittest.TestCase):
         self.assertEqual(by_login[TO_EMAIL], uuid)
         self.assertEqual(by_uuid[uuid].email, TO_EMAIL)
         self.assertEqual(by_uuid[uuid].login, TO_EMAIL)
-        self.failUnless(by_uuid[uuid].password.startswith('{SSHA}'))
+        self.failUnless(by_uuid[uuid].password.startswith(b'{SSHA}'))
         self.assertEqual(by_uuid[uuid].security_question, None)
         self.assertEqual(by_uuid[uuid].security_answer, None)
         self.assertEqual(by_uuid[uuid].token, None)
