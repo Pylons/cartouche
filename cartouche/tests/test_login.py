@@ -19,6 +19,7 @@ class _Base(object):
         from pyramid.config import Configurator
         self.config = Configurator(autocommit=True)
         self.config.begin()
+        self.config.include('pyramid_chameleon')
 
     def tearDown(self):
         self.config.end()

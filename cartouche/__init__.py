@@ -13,6 +13,7 @@
 ##############################################################################
 
 from pyramid.config import Configurator
+import pyramid_chameleon
 import pyramid_zcml
 from repoze.zodbconn.finder import PersistentApplicationFinder
 
@@ -42,6 +43,7 @@ def main(global_config, **settings):
                           autocommit=True,
                           settings=settings,
                          )
+    config.include(pyramid_chameleon)
     config.include(pyramid_zcml)
     config.load_zcml(zcml_file)
     return config.make_wsgi_app()
