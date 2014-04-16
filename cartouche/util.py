@@ -44,8 +44,8 @@ def _fixup_url(context, request, base_url, **extra_qs):
     if base_url.startswith('/'):
         base_url = urljoin(resource_url(context, request), base_url)
     (sch, netloc, path, parms, qs, frag) = urlparse(base_url)
-    qs_items = parse_qsl(qs) + extra_qs.items()
-    qs = urlencode(qs_items, 1)
+    qs_items = parse_qsl(qs) + list(extra_qs.items())
+    qs = url_encode(qs_items, 1)
     return urlunparse((sch, netloc, path, parms, qs, frag))
 
 
