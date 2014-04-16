@@ -146,7 +146,7 @@ def register_view(context, request):
     if 'register' in request.POST:
         try:
             appstruct = form.validate(request.POST.items())
-        except ValidationFailure, e:
+        except ValidationFailure as e:
             rendered_form = e.render()
         else:
             pending = request.registry.queryAdapter(context, IRegistrations,
@@ -193,7 +193,7 @@ def confirm_registration_view(context, request):
     if 'confirm' in request.POST:
         try:
             appstruct = form.validate(request.POST.items())
-        except ValidationFailure, e:
+        except ValidationFailure as e:
             rendered_form = e.render()
         else:
             email = appstruct['email']
@@ -296,7 +296,7 @@ def edit_account_view(context, request):
     if 'update' in request.POST:
         try:
             appstruct = form.validate(request.POST.items())
-        except ValidationFailure, e:
+        except ValidationFailure as e:
             rendered_form = e.render()
         else:
             login = appstruct['login_name']

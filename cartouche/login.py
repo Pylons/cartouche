@@ -56,7 +56,7 @@ def login_view(context, request):
     if 'login' in request.POST:
         try:
             appstruct = form.validate(request.POST.items())
-        except ValidationFailure, e:
+        except ValidationFailure as e:
             rendered_form = e.render()
             message = 'Please supply required values'
         else:
@@ -133,7 +133,7 @@ def recover_account_view(context, request):
     if 'recover' in request.POST:
         try:
             appstruct = form.validate(request.POST.items())
-        except ValidationFailure, e: #pragma NO COVER
+        except ValidationFailure as e: #pragma NO COVER
             rendered_form = e.render()
         else:
             email = appstruct['email']
@@ -202,7 +202,7 @@ def reset_password_view(context, request):
     if 'reset' in request.POST:
         try:
             appstruct = form.validate(request.POST.items())
-        except ValidationFailure, e:
+        except ValidationFailure as e:
             rendered_form = e.render()
         else:
             login = appstruct['login_name']
