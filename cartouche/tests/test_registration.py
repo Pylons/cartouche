@@ -158,7 +158,7 @@ class Test_register_view(_Base, unittest.TestCase):
         self.failUnless(FIELD_ERROR.search(rendered_form))
 
     def test_POST_no_errors_no_confirmation_url(self):
-        from urllib import quote
+        from .._compat import url_quote
         from repoze.sendmail.interfaces import IMailDelivery
         from webob.exc import HTTPFound
         from cartouche.interfaces import ITokenGenerator
@@ -180,7 +180,7 @@ class Test_register_view(_Base, unittest.TestCase):
         self.failUnless(isinstance(response, HTTPFound))
         self.assertEqual(response.location,
                          'http://example.com/confirm_registration.html'
-                           '?email=%s' % quote(TO_EMAIL))
+                           '?email=%s' % url_quote(TO_EMAIL))
         self.assertEqual(delivery._sent[0], FROM_EMAIL)
         self.assertEqual(list(delivery._sent[1]), [TO_EMAIL])
         info = pending[TO_EMAIL]
@@ -188,10 +188,10 @@ class Test_register_view(_Base, unittest.TestCase):
         self.assertEqual(info.token, 'RANDOM')
 
     def test_POST_no_errors_w_confirmation_url(self):
-        from urllib import quote
         from repoze.sendmail.interfaces import IMailDelivery
         from webob.exc import HTTPFound
-        from cartouche.interfaces import ITokenGenerator
+        from ..interfaces import ITokenGenerator
+        from .._compat import url_quote
         def _tokenGenerator():
             return 'RANDOM'
         FROM_EMAIL = 'admin@example.com'
@@ -212,7 +212,7 @@ class Test_register_view(_Base, unittest.TestCase):
         self.failUnless(isinstance(response, HTTPFound))
         self.assertEqual(response.location,
                          'http://example.com/confirm.html'
-                           '?foo=bar&email=%s' % quote(TO_EMAIL))
+                           '?foo=bar&email=%s' % url_quote(TO_EMAIL))
         self.assertEqual(delivery._sent[0], FROM_EMAIL)
         self.assertEqual(list(delivery._sent[1]), [TO_EMAIL])
         info = pending[TO_EMAIL]
@@ -328,8 +328,8 @@ class Test_confirm_registration_view(_Base, unittest.TestCase):
                          'Please+register+first.')
 
     def test_POST_w_token_miss(self):
-        from urllib import quote
         from webob.exc import HTTPFound
+        from .._compat import url_quote
         EMAIL = 'phred@example.com'
         POST = {'email': EMAIL,
                 'token': 'TOKEN',
@@ -346,7 +346,7 @@ class Test_confirm_registration_view(_Base, unittest.TestCase):
         self.assertEqual(response.location,
                          'http://example.com/confirm_registration.html'
                          '?message=Please+copy+the+token+from+your'
-                         '+confirmation+e-mail.&email=%s' % quote(EMAIL))
+                         '+confirmation+e-mail.&email=%s' % url_quote(EMAIL))
 
     def test_POST_w_token_hit_no_auto_login(self):
         from webob.exc import HTTPFound

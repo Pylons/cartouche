@@ -15,12 +15,6 @@ from email.message import Message
 from random import choice
 from random import randrange
 from string import digits
-from string import letters
-from urllib import urlencode
-from urlparse import parse_qsl
-from urlparse import urljoin
-from urlparse import urlparse
-from urlparse import urlunparse
 from uuid import uuid4
 
 from pyramid.url import resource_url
@@ -31,10 +25,16 @@ from repoze.who.api import get_api
 from zope.interface import directlyProvides
 from zope.password.password import SSHAPasswordManager
 
-from cartouche.interfaces import IAutoLogin
-from cartouche.interfaces import ICameFromURL
-from cartouche.interfaces import IPasswordGenerator
-from cartouche.interfaces import ITokenGenerator
+from .interfaces import IAutoLogin
+from .interfaces import ICameFromURL
+from .interfaces import IPasswordGenerator
+from .interfaces import ITokenGenerator
+from ._compat import letters
+from ._compat import url_encode
+from ._compat import parse_qsl
+from ._compat import urljoin
+from ._compat import urlparse
+from ._compat import urlunparse
 
 # By default, deliver e-mail via localhost, port 25.
 localhost_mta = DirectMailDelivery(SMTPMailer())
