@@ -74,7 +74,6 @@ setup(name='cartouche',
       [console_scripts]
       add_cartouche_admin = cartouche.scripts.add_cartouche_admin:main
       """,
-      paster_plugins=['pyramid'],
       extras_require = {
         'testing': ['nose', 'coverage'],
         'docs': ['Sphinx', 'repoze.sphinx.autointerface'],
