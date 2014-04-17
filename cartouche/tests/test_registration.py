@@ -123,7 +123,7 @@ class Test_register_view(_Base, unittest.TestCase):
         info = self._callFUT()
 
         main_template = info['main_template']
-        self.failUnless(main_template is mtr.implementation())
+        self.assertTrue(main_template is mtr.implementation())
         rendered_form = info['rendered_form']
         inputs = [x for x in INPUT.findall(rendered_form)
                         if not x.startswith('_')]
@@ -153,10 +153,10 @@ class Test_register_view(_Base, unittest.TestCase):
         info = self._callFUT(context, request)
 
         main_template = info['main_template']
-        self.failUnless(main_template is mtr.implementation())
+        self.assertTrue(main_template is mtr.implementation())
         rendered_form = info['rendered_form']
-        self.failUnless(SUMMARY_ERROR.search(rendered_form))
-        self.failUnless(FIELD_ERROR.search(rendered_form))
+        self.assertTrue(SUMMARY_ERROR.search(rendered_form))
+        self.assertTrue(FIELD_ERROR.search(rendered_form))
 
     def test_POST_no_errors_no_confirmation_url(self):
         from .._compat import url_quote
@@ -178,7 +178,7 @@ class Test_register_view(_Base, unittest.TestCase):
 
         response = self._callFUT(context, request)
 
-        self.failUnless(isinstance(response, HTTPFound))
+        self.assertTrue(isinstance(response, HTTPFound))
         self.assertEqual(response.location,
                          'http://example.com/confirm_registration.html'
                            '?email=%s' % url_quote(TO_EMAIL))
@@ -210,7 +210,7 @@ class Test_register_view(_Base, unittest.TestCase):
 
         response = self._callFUT(context, request)
 
-        self.failUnless(isinstance(response, HTTPFound))
+        self.assertTrue(isinstance(response, HTTPFound))
         self.assertEqual(response.location,
                          'http://example.com/confirm.html'
                            '?foo=bar&email=%s' % url_quote(TO_EMAIL))
@@ -237,7 +237,7 @@ class Test_confirm_registration_view(_Base, unittest.TestCase):
 
         response = self._callFUT()
 
-        self.failUnless(isinstance(response, HTTPFound))
+        self.assertTrue(isinstance(response, HTTPFound))
         self.assertEqual(response.location,
                          'http://example.com/register.html?message='
                          'Please+register+first'
@@ -251,7 +251,7 @@ class Test_confirm_registration_view(_Base, unittest.TestCase):
 
         response = self._callFUT(request=request)
 
-        self.failUnless(isinstance(response, HTTPFound))
+        self.assertTrue(isinstance(response, HTTPFound))
         self.assertEqual(response.location,
                          'http://example.com/register.html?message='
                          'Please+register+first.')
@@ -266,7 +266,7 @@ class Test_confirm_registration_view(_Base, unittest.TestCase):
 
         response = self._callFUT(request=request)
 
-        self.failUnless(isinstance(response, HTTPFound))
+        self.assertTrue(isinstance(response, HTTPFound))
         self.assertEqual(response.location,
                          'http://example.com/site_registration.html'
                          '?foo=bar&message=Please+register+first.')
@@ -307,10 +307,10 @@ class Test_confirm_registration_view(_Base, unittest.TestCase):
         info = self._callFUT(context, request)
 
         main_template = info['main_template']
-        self.failUnless(main_template is mtr.implementation())
+        self.assertTrue(main_template is mtr.implementation())
         rendered_form = info['rendered_form']
-        self.failUnless(SUMMARY_ERROR.search(rendered_form))
-        self.failUnless(FIELD_ERROR.search(rendered_form))
+        self.assertTrue(SUMMARY_ERROR.search(rendered_form))
+        self.assertTrue(FIELD_ERROR.search(rendered_form))
 
     def test_POST_w_email_miss(self):
         from webob.exc import HTTPFound
@@ -324,7 +324,7 @@ class Test_confirm_registration_view(_Base, unittest.TestCase):
 
         response = self._callFUT(request=request)
 
-        self.failUnless(isinstance(response, HTTPFound))
+        self.assertTrue(isinstance(response, HTTPFound))
         self.assertEqual(response.location,
                          'http://example.com/register.html?message='
                          'Please+register+first.')
@@ -346,7 +346,7 @@ class Test_confirm_registration_view(_Base, unittest.TestCase):
 
         response = self._callFUT(context, request)
 
-        self.failUnless(isinstance(response, HTTPFound))
+        self.assertTrue(isinstance(response, HTTPFound))
         scheme, nethost, path, parms, qs, frag = urlparse(response.location)
         no_qs = urlunparse((scheme, nethost, path, parms, '', ''))
         self.assertEqual(no_qs, 'http://example.com/confirm_registration.html')
@@ -378,29 +378,29 @@ class Test_confirm_registration_view(_Base, unittest.TestCase):
 
         response = self._callFUT(context, request)
 
-        self.failUnless(isinstance(response, HTTPFound))
+        self.assertTrue(isinstance(response, HTTPFound))
         for key, value in HEADERS:
             self.assertEqual(response.headers.get(key), None)
         self.assertEqual(response.location,
                          'http://example.com/edit_account.html')
 
-        self.failIf(TO_EMAIL in pending)
+        self.assertFalse(TO_EMAIL in pending)
         uuid = by_email[TO_EMAIL]
         self.assertEqual(by_login[TO_EMAIL], uuid)
         self.assertEqual(by_uuid[uuid].email, TO_EMAIL)
         self.assertEqual(by_uuid[uuid].login, TO_EMAIL)
-        self.failUnless(by_uuid[uuid].password.startswith(b'{SSHA}'))
+        self.assertTrue(by_uuid[uuid].password.startswith(b'{SSHA}'))
         self.assertEqual(by_uuid[uuid].security_question, None)
         self.assertEqual(by_uuid[uuid].security_answer, None)
         self.assertEqual(by_uuid[uuid].token, None)
-        self.failIf('_called_with' in api.__dict__)
+        self.assertFalse('_called_with' in api.__dict__)
 
         self.assertEqual(delivery._sent[0], FROM_EMAIL)
         self.assertEqual(list(delivery._sent[1]), [TO_EMAIL])
         self.assertEqual(delivery._sent[2]['Subject'],
                          'Your new site password')
         payload = delivery._sent[2].get_payload()
-        self.failUnless('Your new password is:' in payload)
+        self.assertTrue('Your new password is:' in payload)
 
     def test_POST_w_token_hit_no_after_confirmation_url_setting(self):
         from webob.exc import HTTPFound
@@ -421,13 +421,13 @@ class Test_confirm_registration_view(_Base, unittest.TestCase):
 
         response = self._callFUT(context, request)
 
-        self.failUnless(isinstance(response, HTTPFound))
+        self.assertTrue(isinstance(response, HTTPFound))
         for key, value in HEADERS:
             self.assertEqual(response.headers[key], value)
         self.assertEqual(response.location,
                          'http://example.com/edit_account.html')
 
-        self.failIf(EMAIL in pending)
+        self.assertFalse(EMAIL in pending)
         uuid = by_email[EMAIL]
         self.assertEqual(by_login[EMAIL], uuid)
         self.assertEqual(by_uuid[uuid].email, EMAIL)
@@ -460,7 +460,7 @@ class Test_confirm_registration_view(_Base, unittest.TestCase):
 
         response = self._callFUT(context, request)
 
-        self.failUnless(isinstance(response, HTTPFound))
+        self.assertTrue(isinstance(response, HTTPFound))
         for key, value in HEADERS:
             self.assertEqual(response.headers[key], value)
         self.assertEqual(response.location, 'http://example.com/after.html')
@@ -479,7 +479,7 @@ class Test_edit_account_view(_Base, unittest.TestCase):
     def test_GET_wo_credentials(self):
         from webob.exc import HTTPUnauthorized
         response = self._callFUT()
-        self.failUnless(isinstance(response, HTTPUnauthorized))
+        self.assertTrue(isinstance(response, HTTPUnauthorized))
 
     def test_GET_w_unknown_credentials(self):
         from webob.exc import HTTPForbidden
@@ -490,7 +490,7 @@ class Test_edit_account_view(_Base, unittest.TestCase):
 
         response = self._callFUT(request=request)
 
-        self.failUnless(isinstance(response, HTTPForbidden))
+        self.assertTrue(isinstance(response, HTTPForbidden))
 
     def test_GET_w_known_credentials_initial_edit(self):
         from io import StringIO
@@ -512,7 +512,7 @@ class Test_edit_account_view(_Base, unittest.TestCase):
 
         info = self._callFUT(request=request)
 
-        self.failUnless(info['main_template'] is mtr.implementation())
+        self.assertTrue(info['main_template'] is mtr.implementation())
         rendered_form = info['rendered_form']
         form_tree = ET.parse(StringIO(rendered_form))
         inputs = [(x.get('name'), x.get('value'))
@@ -553,7 +553,7 @@ class Test_edit_account_view(_Base, unittest.TestCase):
 
         info = self._callFUT(request=request)
 
-        self.failUnless(info['main_template'] is mtr.implementation())
+        self.assertTrue(info['main_template'] is mtr.implementation())
         rendered_form = info['rendered_form']
         form_tree = ET.parse(StringIO(rendered_form))
         inputs = [(x.get('name'), x.get('value'))
@@ -606,12 +606,12 @@ class Test_edit_account_view(_Base, unittest.TestCase):
         info = self._callFUT(request=request)
 
         rendered_form = info['rendered_form']
-        self.failUnless(SUMMARY_ERROR.search(rendered_form))
-        self.failUnless(FIELD_ERROR.search(rendered_form))
-        self.failUnless(OLD_EMAIL in by_email)
-        self.failIf(NEW_EMAIL in by_email)
-        self.failUnless('before' in by_login)
-        self.failIf('after' in by_login)
+        self.assertTrue(SUMMARY_ERROR.search(rendered_form))
+        self.assertTrue(FIELD_ERROR.search(rendered_form))
+        self.assertTrue(OLD_EMAIL in by_email)
+        self.assertFalse(NEW_EMAIL in by_email)
+        self.assertTrue('before' in by_login)
+        self.assertFalse('after' in by_login)
 
     def test_POST_w_old_password_miss(self):
         import re
@@ -650,12 +650,12 @@ class Test_edit_account_view(_Base, unittest.TestCase):
         info = self._callFUT(request=request)
 
         rendered_form = info['rendered_form']
-        self.failUnless(SUMMARY_ERROR.search(rendered_form))
-        self.failUnless(FIELD_ERROR.search(rendered_form))
-        self.failUnless(OLD_EMAIL in by_email)
-        self.failIf(NEW_EMAIL in by_email)
-        self.failUnless('before' in by_login)
-        self.failIf('after' in by_login)
+        self.assertTrue(SUMMARY_ERROR.search(rendered_form))
+        self.assertTrue(FIELD_ERROR.search(rendered_form))
+        self.assertTrue(OLD_EMAIL in by_email)
+        self.assertFalse(NEW_EMAIL in by_email)
+        self.assertTrue('before' in by_login)
+        self.assertFalse('after' in by_login)
 
     def test_POST_w_password_confirm_mismatch(self):
         import re
@@ -694,12 +694,12 @@ class Test_edit_account_view(_Base, unittest.TestCase):
         info = self._callFUT(request=request)
 
         rendered_form = info['rendered_form']
-        self.failUnless(SUMMARY_ERROR.search(rendered_form))
-        self.failUnless(FIELD_ERROR.search(rendered_form))
-        self.failUnless(OLD_EMAIL in by_email)
-        self.failIf(NEW_EMAIL in by_email)
-        self.failUnless('before' in by_login)
-        self.failIf('after' in by_login)
+        self.assertTrue(SUMMARY_ERROR.search(rendered_form))
+        self.assertTrue(FIELD_ERROR.search(rendered_form))
+        self.assertTrue(OLD_EMAIL in by_email)
+        self.assertFalse(NEW_EMAIL in by_email)
+        self.assertTrue('before' in by_login)
+        self.assertFalse('after' in by_login)
 
     def test_POST_w_password_match_new_login_not_unique(self):
         import re
@@ -740,10 +740,10 @@ class Test_edit_account_view(_Base, unittest.TestCase):
         info = self._callFUT(request=request)
 
         rendered_form = info['rendered_form']
-        self.failUnless(SUMMARY_ERROR.search(rendered_form))
-        self.failUnless(FIELD_ERROR.search(rendered_form))
-        self.failUnless(OLD_EMAIL in by_email)
-        self.failIf(NEW_EMAIL in by_email)
+        self.assertTrue(SUMMARY_ERROR.search(rendered_form))
+        self.assertTrue(FIELD_ERROR.search(rendered_form))
+        self.assertTrue(OLD_EMAIL in by_email)
+        self.assertFalse(NEW_EMAIL in by_email)
         self.assertEqual(by_login['before'], 'UUID')
         self.assertEqual(by_login['taken'], 'OTHER_UUID')
 
@@ -781,19 +781,19 @@ class Test_edit_account_view(_Base, unittest.TestCase):
 
         response = self._callFUT(request=request)
 
-        self.failUnless(isinstance(response, HTTPFound))
+        self.assertTrue(isinstance(response, HTTPFound))
         self.assertEqual(response.location,
                          'http://example.com/edit_account.html')
 
         new_record = by_uuid['UUID']
         self.assertEqual(new_record.login, 'after')
-        self.failUnless(pwd_mgr.checkPassword(new_record.password,
+        self.assertTrue(pwd_mgr.checkPassword(new_record.password,
                                               'newpassword'))
         self.assertEqual(new_record.security_question, 'petname')
         self.assertEqual(new_record.security_answer, 'Fido')
-        self.failIf(OLD_EMAIL in by_email)
+        self.assertFalse(OLD_EMAIL in by_email)
         self.assertEqual(by_email[NEW_EMAIL], 'UUID')
-        self.failIf('before' in by_login)
+        self.assertFalse('before' in by_login)
         self.assertEqual(by_login['after'], 'UUID')
 
     def test_POST_w_password_match_w_after_edit_url(self):
@@ -832,18 +832,18 @@ class Test_edit_account_view(_Base, unittest.TestCase):
 
         response = self._callFUT(request=request)
 
-        self.failUnless(isinstance(response, HTTPFound))
+        self.assertTrue(isinstance(response, HTTPFound))
         self.assertEqual(response.location, 'http://example.com/')
 
         new_record = by_uuid['UUID']
         self.assertEqual(new_record.login, 'after')
-        self.failUnless(pwd_mgr.checkPassword(new_record.password,
+        self.assertTrue(pwd_mgr.checkPassword(new_record.password,
                                               'newpassword'))
         self.assertEqual(new_record.security_question, 'petname')
         self.assertEqual(new_record.security_answer, 'Fido')
-        self.failIf(OLD_EMAIL in by_email)
+        self.assertFalse(OLD_EMAIL in by_email)
         self.assertEqual(by_email[NEW_EMAIL], 'UUID')
-        self.failIf('before' in by_login)
+        self.assertFalse('before' in by_login)
         self.assertEqual(by_login['after'], 'UUID')
 
 

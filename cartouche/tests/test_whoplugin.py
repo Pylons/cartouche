@@ -189,7 +189,7 @@ class Test_make_plugin(unittest.TestCase):
         from cartouche.whoplugin import WhoPlugin
         from cartouche.whoplugin import make_plugin
         plugin = make_plugin(URI)
-        self.failUnless(isinstance(plugin, WhoPlugin))
+        self.assertTrue(isinstance(plugin, WhoPlugin))
         self.assertEqual(plugin._zodb_uri, URI)
 
 

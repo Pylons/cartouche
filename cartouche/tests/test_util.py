@@ -137,7 +137,7 @@ class Test_randomPassword(unittest.TestCase):
                                      '[~!@#$%^&*]'
                                      '[A-Za-z0-9]{6,8}'
                                    )
-        self.failUnless(RANDOM_PATTERN.match(self._callFUT()))
+        self.assertTrue(RANDOM_PATTERN.match(self._callFUT()))
 
 
 class Test_autoLoginViaAuthTkt(_Base, unittest.TestCase):
@@ -230,7 +230,7 @@ class Test_sendGeneratedPassword(_Base, unittest.TestCase):
         self.assertEqual(record.login, 'phred')
         password = record.password
         self.assertNotEqual(password, 'old_password')
-        self.failUnless(password.startswith(b'{SSHA}'))
+        self.assertTrue(password.startswith(b'{SSHA}'))
         self.assertEqual(record.security_question, 'question')
         self.assertEqual(record.security_answer, 'answer')
         self.assertEqual(record.token, None)
@@ -238,12 +238,12 @@ class Test_sendGeneratedPassword(_Base, unittest.TestCase):
         self.assertEqual(delivery._sent[0], FROM_EMAIL)
         self.assertEqual(list(delivery._sent[1]), [TO_EMAIL])
         payload = delivery._sent[2].get_payload()
-        self.failUnless(login_url in payload)
+        self.assertTrue(login_url in payload)
         found = GENERATED.search(payload)
         generated = found.group('password') 
         self.assertEqual(generated, 'PASSWORD')
         pwd_mgr = SSHAPasswordManager()
-        self.failUnless(pwd_mgr.checkPassword(password, generated))
+        self.assertTrue(pwd_mgr.checkPassword(password, generated))
 
     def test_hit_wo_password_utility(self):
         import re
@@ -278,7 +278,7 @@ class Test_sendGeneratedPassword(_Base, unittest.TestCase):
         self.assertEqual(record.login, 'phred')
         password = record.password
         self.assertNotEqual(password, 'old_password')
-        self.failUnless(password.startswith(b'{SSHA}'))
+        self.assertTrue(password.startswith(b'{SSHA}'))
         self.assertEqual(record.security_question, 'question')
         self.assertEqual(record.security_answer, 'answer')
         self.assertEqual(record.token, None)
@@ -286,12 +286,12 @@ class Test_sendGeneratedPassword(_Base, unittest.TestCase):
         self.assertEqual(delivery._sent[0], FROM_EMAIL)
         self.assertEqual(list(delivery._sent[1]), [TO_EMAIL])
         payload = delivery._sent[2].get_payload()
-        self.failUnless(login_url in payload)
+        self.assertTrue(login_url in payload)
         found = GENERATED.search(payload)
         generated = found.group('password') 
         pwd_mgr = SSHAPasswordManager()
-        self.failUnless(pwd_mgr.checkPassword(password, generated))
-        self.failUnless(RANDOM_PATTERN.match(generated))
+        self.assertTrue(pwd_mgr.checkPassword(password, generated))
+        self.assertTrue(RANDOM_PATTERN.match(generated))
 
 
 class Test_defaultCameFromURL(_Base, unittest.TestCase):

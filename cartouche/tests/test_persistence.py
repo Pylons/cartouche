@@ -68,7 +68,7 @@ class PendingRegistrationsTests(_RegistrationsBase, unittest.TestCase):
 
     def _verifyInfo(self, info, email='phred@example.com', token='token'):
         from cartouche.interfaces import IPendingRegistrationInfo
-        self.failUnless(IPendingRegistrationInfo.providedBy(info))
+        self.assertTrue(IPendingRegistrationInfo.providedBy(info))
         self.assertEqual(info.email, email)
         self.assertEqual(info.token, token)
 
@@ -106,7 +106,7 @@ class PendingRegistrationsTests(_RegistrationsBase, unittest.TestCase):
 
         self.assertEqual(adapter.get('phred@example.com'), None)
 
-        self.failIf('cartouche' in context.__dict__)
+        self.assertFalse('cartouche' in context.__dict__)
 
     def test_get_context_is_root_w_cartouche_miss(self):
         context = self._makeContext()
@@ -115,7 +115,7 @@ class PendingRegistrationsTests(_RegistrationsBase, unittest.TestCase):
 
         self.assertEqual(adapter.get('phred@example.com'), None)
 
-        self.failIf('phred@example.com' in cartouche.pending)
+        self.assertFalse('phred@example.com' in cartouche.pending)
 
     def test_get_context_is_root_w_cartouche_hit(self):
         context = self._makeContext()
@@ -125,7 +125,7 @@ class PendingRegistrationsTests(_RegistrationsBase, unittest.TestCase):
 
         adapter = self._makeOne(context)
 
-        self.failUnless(adapter.get('phred@example.com') is info)
+        self.assertTrue(adapter.get('phred@example.com') is info)
 
     def test_get_by_login_raises(self):
         context = self._makeContext()
@@ -139,7 +139,7 @@ class PendingRegistrationsTests(_RegistrationsBase, unittest.TestCase):
 
         self.assertEqual(adapter.get_by_email('phred@example.com'), None)
 
-        self.failIf('cartouche' in context.__dict__)
+        self.assertFalse('cartouche' in context.__dict__)
 
     def test_get_by_email_context_is_root_w_cartouche_miss(self):
         context = self._makeContext()
@@ -148,7 +148,7 @@ class PendingRegistrationsTests(_RegistrationsBase, unittest.TestCase):
 
         self.assertEqual(adapter.get_by_email('phred@example.com'), None)
 
-        self.failIf('phred@example.com' in cartouche.pending)
+        self.assertFalse('phred@example.com' in cartouche.pending)
 
     def test_get_by_email_context_is_root_w_cartouche_hit(self):
         context = self._makeContext()
@@ -158,7 +158,7 @@ class PendingRegistrationsTests(_RegistrationsBase, unittest.TestCase):
 
         adapter = self._makeOne(context)
 
-        self.failUnless(adapter.get_by_email('phred@example.com') is info)
+        self.assertTrue(adapter.get_by_email('phred@example.com') is info)
 
     def test_remove_context_is_root_no_cartouche(self):
         context = self._makeContext()
@@ -181,7 +181,7 @@ class PendingRegistrationsTests(_RegistrationsBase, unittest.TestCase):
 
         adapter.remove('phred@example.com')
 
-        self.failIf('phred@example.com' in cartouche.pending)
+        self.assertFalse('phred@example.com' in cartouche.pending)
 
     def test___iter___empty(self):
         adapter = self._makeOne()
@@ -216,7 +216,7 @@ class ConfirmedRegistrationsTests(_RegistrationsBase, unittest.TestCase):
                     token='token',
                    ):
         from cartouche.interfaces import IRegistrationInfo
-        self.failUnless(IRegistrationInfo.providedBy(info))
+        self.assertTrue(IRegistrationInfo.providedBy(info))
         self.assertEqual(info.email, email)
         self.assertEqual(info.login, login)
         self.assertEqual(info.password, password)
@@ -293,8 +293,8 @@ class ConfirmedRegistrationsTests(_RegistrationsBase, unittest.TestCase):
         self.assertEqual(record.login, 'new_login')
         self.assertEqual(cartouche.by_login['new_login'], 'UUID')
         self.assertEqual(cartouche.by_email['new_phred@example.com'], 'UUID')
-        self.failIf('old_login' in cartouche.by_login)
-        self.failIf('old_phred@example.com' in cartouche.by_email)
+        self.assertFalse('old_login' in cartouche.by_login)
+        self.assertFalse('old_phred@example.com' in cartouche.by_email)
 
     def test_get_context_is_root_no_cartouche(self):
         context = self._makeContext()
@@ -302,7 +302,7 @@ class ConfirmedRegistrationsTests(_RegistrationsBase, unittest.TestCase):
 
         self.assertEqual(adapter.get('UUID'), None)
 
-        self.failIf('cartouche' in context.__dict__)
+        self.assertFalse('cartouche' in context.__dict__)
 
     def test_get_context_is_root_w_cartouche_miss(self):
         context = self._makeContext()
@@ -311,7 +311,7 @@ class ConfirmedRegistrationsTests(_RegistrationsBase, unittest.TestCase):
 
         self.assertEqual(adapter.get('UUID'), None)
 
-        self.failIf('UUID' in cartouche.by_uuid)
+        self.assertFalse('UUID' in cartouche.by_uuid)
 
     def test_get_context_is_root_w_cartouche_hit(self):
         context = self._makeContext()
@@ -321,7 +321,7 @@ class ConfirmedRegistrationsTests(_RegistrationsBase, unittest.TestCase):
 
         adapter = self._makeOne(context)
 
-        self.failUnless(adapter.get('UUID') is info)
+        self.assertTrue(adapter.get('UUID') is info)
 
     def test_get_by_login_context_is_root_no_cartouche(self):
         context = self._makeContext()
@@ -329,7 +329,7 @@ class ConfirmedRegistrationsTests(_RegistrationsBase, unittest.TestCase):
 
         self.assertEqual(adapter.get_by_login('login'), None)
 
-        self.failIf('cartouche' in context.__dict__)
+        self.assertFalse('cartouche' in context.__dict__)
 
     def test_get_by_login_context_is_root_w_cartouche_miss(self):
         context = self._makeContext()
@@ -338,7 +338,7 @@ class ConfirmedRegistrationsTests(_RegistrationsBase, unittest.TestCase):
 
         self.assertEqual(adapter.get_by_login('login'), None)
 
-        self.failIf('UUID' in cartouche.by_uuid)
+        self.assertFalse('UUID' in cartouche.by_uuid)
 
     def test_get_by_login_context_is_root_w_cartouche_hit(self):
         context = self._makeContext()
@@ -349,7 +349,7 @@ class ConfirmedRegistrationsTests(_RegistrationsBase, unittest.TestCase):
 
         adapter = self._makeOne(context)
 
-        self.failUnless(adapter.get_by_login('login') is info)
+        self.assertTrue(adapter.get_by_login('login') is info)
 
     def test_get_by_email_context_is_root_no_cartouche(self):
         context = self._makeContext()
@@ -357,7 +357,7 @@ class ConfirmedRegistrationsTests(_RegistrationsBase, unittest.TestCase):
 
         self.assertEqual(adapter.get_by_email('phred@example.com'), None)
 
-        self.failIf('cartouche' in context.__dict__)
+        self.assertFalse('cartouche' in context.__dict__)
 
     def test_get_by_email_context_is_root_w_cartouche_miss(self):
         context = self._makeContext()
@@ -366,7 +366,7 @@ class ConfirmedRegistrationsTests(_RegistrationsBase, unittest.TestCase):
 
         self.assertEqual(adapter.get_by_email('phred@example.com'), None)
 
-        self.failIf('UUID' in cartouche.by_uuid)
+        self.assertFalse('UUID' in cartouche.by_uuid)
 
     def test_get_by_email_context_is_root_w_cartouche_hit(self):
         context = self._makeContext()
@@ -377,7 +377,7 @@ class ConfirmedRegistrationsTests(_RegistrationsBase, unittest.TestCase):
 
         adapter = self._makeOne(context)
 
-        self.failUnless(adapter.get_by_email('phred@example.com') is info)
+        self.assertTrue(adapter.get_by_email('phred@example.com') is info)
 
     def test_remove_context_is_root_no_cartouche(self):
         context = self._makeContext()
@@ -403,9 +403,9 @@ class ConfirmedRegistrationsTests(_RegistrationsBase, unittest.TestCase):
 
         adapter.remove('UUID')
 
-        self.failIf('UUID' in cartouche.by_uuid)
-        self.failIf(record.login in cartouche.by_login)
-        self.failIf(record.email in cartouche.by_email)
+        self.assertFalse('UUID' in cartouche.by_uuid)
+        self.assertFalse(record.login in cartouche.by_login)
+        self.assertFalse(record.email in cartouche.by_email)
 
     def test___iter___empty(self):
         adapter = self._makeOne()

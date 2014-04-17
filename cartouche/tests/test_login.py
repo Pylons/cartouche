@@ -90,7 +90,7 @@ class Test_login(_Base, unittest.TestCase):
         info = self._callFUT()
 
         main_template = info['main_template']
-        self.failUnless(main_template is mtr.implementation())
+        self.assertTrue(main_template is mtr.implementation())
         rendered_form = info['rendered_form']
         form_tree = ET.parse(StringIO(rendered_form))
         inputs = [x.get('name') for x in form_tree.findall('.//input')]
@@ -127,7 +127,7 @@ class Test_login(_Base, unittest.TestCase):
         info = self._callFUT()
 
         main_template = info['main_template']
-        self.failUnless(main_template is mtr.implementation())
+        self.assertTrue(main_template is mtr.implementation())
         rendered_form = info['rendered_form']
         form_tree = ET.parse(StringIO(rendered_form))
         inputs = [x.get('name') for x in form_tree.findall('.//input')]
@@ -161,7 +161,7 @@ class Test_login(_Base, unittest.TestCase):
         info = self._callFUT(context, request)
 
         main_template = info['main_template']
-        self.failUnless(main_template is mtr.implementation())
+        self.assertTrue(main_template is mtr.implementation())
         self.assertEqual(info['message'], 'Please supply required values')
 
     def test_POST_w_unknown_login(self):
@@ -178,7 +178,7 @@ class Test_login(_Base, unittest.TestCase):
         info = self._callFUT(context, request)
 
         main_template = info['main_template']
-        self.failUnless(main_template is mtr.implementation())
+        self.assertTrue(main_template is mtr.implementation())
         self.assertEqual(info['message'], 'Login failed')
 
     def test_POST_w_bad_password(self):
@@ -195,7 +195,7 @@ class Test_login(_Base, unittest.TestCase):
         info = self._callFUT(context, request)
 
         main_template = info['main_template']
-        self.failUnless(main_template is mtr.implementation())
+        self.assertTrue(main_template is mtr.implementation())
         self.assertEqual(info['message'], 'Login failed')
 
     def test_POST_w_good_password_no_came_from_field(self):
@@ -212,10 +212,10 @@ class Test_login(_Base, unittest.TestCase):
 
         response = self._callFUT(context, request)
 
-        self.failUnless(isinstance(response, HTTPFound))
+        self.assertTrue(isinstance(response, HTTPFound))
         self.assertEqual(response.location, 'http://example.com/')
         for key, value in api.LOGIN_HEADERS:
-            self.failUnless(response.headers[key] is value)
+            self.assertTrue(response.headers[key] is value)
 
     def test_POST_w_good_password_w_came_from_field(self):
         from webob.exc import HTTPFound
@@ -233,10 +233,10 @@ class Test_login(_Base, unittest.TestCase):
 
         response = self._callFUT(context, request)
 
-        self.failUnless(isinstance(response, HTTPFound))
+        self.assertTrue(isinstance(response, HTTPFound))
         self.assertEqual(response.location, CAME_FROM)
         for key, value in api.LOGIN_HEADERS:
-            self.failUnless(response.headers[key] is value)
+            self.assertTrue(response.headers[key] is value)
 
 
 class Test_logout(_Base, unittest.TestCase):
@@ -282,7 +282,7 @@ class Test_logout(_Base, unittest.TestCase):
 
         response = self._callFUT(request=request)
 
-        self.failUnless(isinstance(response, HTTPFound))
+        self.assertTrue(isinstance(response, HTTPFound))
         self.assertEqual(response.location, 'http://example.com/')
 
         for key, value in api.LOGOUT_HEADERS:
@@ -301,7 +301,7 @@ class Test_logout(_Base, unittest.TestCase):
 
         response = self._callFUT(request=request)
 
-        self.failUnless(isinstance(response, HTTPFound))
+        self.assertTrue(isinstance(response, HTTPFound))
         self.assertEqual(response.location, URL)
 
         for key, value in api.LOGOUT_HEADERS:
@@ -326,7 +326,7 @@ class Test_recover_account(_Base, unittest.TestCase):
         info = self._callFUT()
 
         main_template = info['main_template']
-        self.failUnless(main_template is mtr.implementation())
+        self.assertTrue(main_template is mtr.implementation())
         rendered_form = info['rendered_form']
         inputs = [x for x in INPUT.findall(rendered_form)
                         if not x.startswith('_')]
@@ -358,10 +358,10 @@ class Test_recover_account(_Base, unittest.TestCase):
         info = self._callFUT(context, request)
 
         main_template = info['main_template']
-        self.failUnless(main_template is mtr.implementation())
+        self.assertTrue(main_template is mtr.implementation())
         rendered_form = info['rendered_form']
-        self.failUnless(SUMMARY_ERROR.search(rendered_form))
-        self.failUnless(FIELD_ERROR.search(rendered_form))
+        self.assertTrue(SUMMARY_ERROR.search(rendered_form))
+        self.assertTrue(FIELD_ERROR.search(rendered_form))
 
     def test_POST_email_miss_still_redirects(self):
         from repoze.sendmail.interfaces import IMailDelivery
@@ -380,7 +380,7 @@ class Test_recover_account(_Base, unittest.TestCase):
 
         response = self._callFUT(context, request)
 
-        self.failUnless(isinstance(response, HTTPFound))
+        self.assertTrue(isinstance(response, HTTPFound))
         login_url = 'http://example.com/login.html'
         self.assertEqual(response.location, login_url)
         self.assertEqual(delivery._sent, None)
@@ -405,14 +405,14 @@ class Test_recover_account(_Base, unittest.TestCase):
 
         response = self._callFUT(context, request)
 
-        self.failUnless(isinstance(response, HTTPFound))
+        self.assertTrue(isinstance(response, HTTPFound))
         login_url = 'http://example.com/login.html'
         self.assertEqual(response.location, login_url)
         self.assertEqual(delivery._sent[0], FROM_EMAIL)
         self.assertEqual(list(delivery._sent[1]), [TO_EMAIL])
         self.assertEqual(delivery._sent[2]['Subject'],
                          'Account recovery')
-        self.failUnless(login_url in delivery._sent[2].get_payload())
+        self.assertTrue(login_url in delivery._sent[2].get_payload())
 
     def test_POST_email_hit_w_login_url_override(self):
         from repoze.sendmail.interfaces import IMailDelivery
@@ -436,14 +436,14 @@ class Test_recover_account(_Base, unittest.TestCase):
 
         response = self._callFUT(context, request)
 
-        self.failUnless(isinstance(response, HTTPFound))
+        self.assertTrue(isinstance(response, HTTPFound))
         login_url = 'http://example.com%s' % LOGIN
         self.assertEqual(response.location, login_url)
         self.assertEqual(delivery._sent[0], FROM_EMAIL)
         self.assertEqual(list(delivery._sent[1]), [TO_EMAIL])
         self.assertEqual(delivery._sent[2]['Subject'],
                          'Account recovery')
-        self.failUnless(login_url in delivery._sent[2].get_payload())
+        self.assertTrue(login_url in delivery._sent[2].get_payload())
 
 
 class Test_reset_password(_Base, unittest.TestCase):
@@ -468,7 +468,7 @@ class Test_reset_password(_Base, unittest.TestCase):
         info = self._callFUT()
 
         main_template = info['main_template']
-        self.failUnless(main_template is mtr.implementation())
+        self.assertTrue(main_template is mtr.implementation())
         rendered_form = info['rendered_form']
         inputs = [x for x in INPUT.findall(rendered_form)
                         if not x.startswith('_')]
@@ -486,7 +486,7 @@ class Test_reset_password(_Base, unittest.TestCase):
         info = self._callFUT(request=request)
 
         main_template = info['main_template']
-        self.failUnless(main_template is mtr.implementation())
+        self.assertTrue(main_template is mtr.implementation())
         rendered_form = info['rendered_form']
         inputs = [x for x in INPUT.findall(rendered_form)
                         if not x.startswith('_')]
@@ -508,10 +508,10 @@ class Test_reset_password(_Base, unittest.TestCase):
         info = self._callFUT(context, request)
 
         main_template = info['main_template']
-        self.failUnless(main_template is mtr.implementation())
+        self.assertTrue(main_template is mtr.implementation())
         rendered_form = info['rendered_form']
-        self.failUnless(SUMMARY_ERROR.search(rendered_form))
-        self.failUnless(FIELD_ERROR.search(rendered_form))
+        self.assertTrue(SUMMARY_ERROR.search(rendered_form))
+        self.assertTrue(FIELD_ERROR.search(rendered_form))
 
     def test_POST_w_invalid_login(self):
         from repoze.sendmail.interfaces import IMailDelivery
@@ -529,7 +529,7 @@ class Test_reset_password(_Base, unittest.TestCase):
 
         response = self._callFUT(context, request)
 
-        self.failUnless(isinstance(response, HTTPFound))
+        self.assertTrue(isinstance(response, HTTPFound))
         reset_url = 'http://example.com/login.html'
         self.assertEqual(response.location, reset_url)
 
@@ -558,14 +558,14 @@ class Test_reset_password(_Base, unittest.TestCase):
 
         response = self._callFUT(context, request)
 
-        self.failUnless(isinstance(response, HTTPFound))
+        self.assertTrue(isinstance(response, HTTPFound))
         reset_url = 'http://example.com/reset_pasword.html'
         self.assertEqual(response.location, reset_url)
         self.assertEqual(delivery._sent[0], FROM_EMAIL)
         self.assertEqual(list(delivery._sent[1]), [TO_EMAIL])
         self.assertEqual(delivery._sent[2]['Subject'],
                          'Password reset confirmation')
-        self.failUnless(reset_url in delivery._sent[2].get_payload())
+        self.assertTrue(reset_url in delivery._sent[2].get_payload())
 
     def test_POST_w_valid_login_w_token_mismatch(self):
         from repoze.sendmail.interfaces import IMailDelivery
@@ -619,7 +619,7 @@ class Test_reset_password(_Base, unittest.TestCase):
 
         response = self._callFUT(context, request)
 
-        self.failUnless(isinstance(response, HTTPFound))
+        self.assertTrue(isinstance(response, HTTPFound))
         after_reset_url = 'http://example.com/edit_account.html'
         self.assertEqual(response.location, after_reset_url)
         self.assertEqual(api._called_with[0],
@@ -654,10 +654,10 @@ class Test_reset_password(_Base, unittest.TestCase):
 
         response = self._callFUT(context, request)
 
-        self.failUnless(isinstance(response, HTTPFound))
+        self.assertTrue(isinstance(response, HTTPFound))
         after_reset_url = 'http://example.com/edit_account.html'
         self.assertEqual(response.location, after_reset_url)
-        self.failIf('_called_with' in api.__dict__)
+        self.assertFalse('_called_with' in api.__dict__)
         for key, value in api.LOGIN_HEADERS:
             self.assertEqual(response.headers.get(key), None)
 
@@ -666,7 +666,7 @@ class Test_reset_password(_Base, unittest.TestCase):
         self.assertEqual(delivery._sent[2]['Subject'],
                          'Your new site password')
         payload = delivery._sent[2].get_payload()
-        self.failUnless('Your new password is:' in payload)
+        self.assertTrue('Your new password is:' in payload)
 
 
 
