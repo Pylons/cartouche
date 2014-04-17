@@ -14,6 +14,7 @@
 from zope.interface import Attribute
 from zope.interface import Interface
 
+from ._compat import u
 
 class IRoot(Interface):
     """ Marker interface for the object at the traversal root.
@@ -23,12 +24,12 @@ class IRoot(Interface):
 class ICartouche(Interface):
     """ Data container, held as an attribute of the root.
     """
-    pending = Attribute(u'Pending registrations, keyed by email')
-    by_uuid = Attribute(u'Confirmed registrations, keyed by UUID')
-    by_email = Attribute(u'Index, email -> UUID')
-    by_login = Attribute(u'Index, login name -> UUID')
-    group_users = Attribute(u'Index, group name -> [UUID]')
-    user_groups = Attribute(u'Index, UUID -> [group_name]')
+    pending = Attribute(u('Pending registrations, keyed by email'))
+    by_uuid = Attribute(u('Confirmed registrations, keyed by UUID'))
+    by_email = Attribute(u('Index, email -> UUID'))
+    by_login = Attribute(u('Index, login name -> UUID'))
+    group_users = Attribute(u('Index, group name -> [UUID]'))
+    user_groups = Attribute(u('Index, UUID -> [group_name]'))
 
 
 class ITokenGenerator(Interface):
@@ -64,19 +65,19 @@ class ICameFromURL(Interface):
 class IPendingRegistrationInfo(Interface):
     """ Model schema of objects tracking pending registrations.
     """
-    email = Attribute(u'Registered e-mail address')
-    token = Attribute(u'Token generated at registration')
+    email = Attribute(u('Registered e-mail address'))
+    token = Attribute(u('Token generated at registration'))
 
 
 class IRegistrationInfo(Interface):
     """ Model schema of objects tracking confirmed registrations.
     """
-    uuid = Attribute(u'Opaque identifier')
-    email = Attribute(u'Registered e-mail address')
-    password = Attribute(u'Hashed password')
-    security_question = Attribute(u'Security question')
-    security_answer = Attribute(u'Answer to security question')
-    token = Attribute(u'Token generated for password reset')
+    uuid = Attribute(u('Opaque identifier'))
+    email = Attribute(u('Registered e-mail address'))
+    password = Attribute(u('Hashed password'))
+    security_question = Attribute(u('Security question'))
+    security_answer = Attribute(u('Answer to security question'))
+    token = Attribute(u('Token generated for password reset'))
 
 
 class IRegistrations(Interface):

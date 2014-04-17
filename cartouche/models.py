@@ -32,7 +32,7 @@ class Root(PersistentMapping):
                (Allow, 'g:admin', ('admin',)),
               ]
     def __repr__(self):
-        return '<Root object;  keys: %s>' % ', '.join(self.keys())
+        return '<Root object;  keys: %s>' % ', '.join(sorted(self.keys()))
 
 
 @implementer(ICartouche)

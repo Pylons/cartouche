@@ -30,13 +30,14 @@ from zope.interface import implementer
 from zope.schema import ASCIILine
 from zope.schema import TextLine
 
-from cartouche.interfaces import IRegistrations
-from cartouche.persistence import ConfirmedRegistrations
+from .interfaces import IRegistrations
+from .persistence import ConfirmedRegistrations
+from ._compat import u
 
 
 class ICartouchePolicyDirective(Interface):
-    config_file = ASCIILine(title=u'config_file', required=True)
-    identifier_name = TextLine(title=u'identitfier_name', required=True)
+    config_file = ASCIILine(title=u('config_file'), required=True)
+    identifier_name = TextLine(title=u('identitfier_name'), required=True)
 
 
 @implementer(IAuthenticationPolicy)

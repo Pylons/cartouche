@@ -83,8 +83,8 @@ class Test_login(_Base, unittest.TestCase):
         return login_view(context, request)
 
     def test_GET(self):
-        import re
-        INPUT = re.compile('<input.*name="(?P<name>\w+)"', re.MULTILINE)
+        from io import StringIO
+        from xml.etree import ElementTree as ET
         mtr = self.config.testing_add_template('templates/main.pt')
 
         info = self._callFUT()
@@ -92,8 +92,9 @@ class Test_login(_Base, unittest.TestCase):
         main_template = info['main_template']
         self.failUnless(main_template is mtr.implementation())
         rendered_form = info['rendered_form']
-        inputs = [x for x in INPUT.findall(rendered_form)
-                        if not x.startswith('_')]
+        form_tree = ET.parse(StringIO(rendered_form))
+        inputs = [x.get('name') for x in form_tree.findall('.//input')]
+        inputs = [x for x in inputs if not x.startswith('_')]
         self.assertEqual(inputs, ['login_name', 'password', 'came_from'])
         self.assertEqual(info['message'], None)
         self.assertEqual(info['register_url'],
@@ -116,8 +117,8 @@ class Test_login(_Base, unittest.TestCase):
         self.assertEqual(info['came_from'], CAME_FROM)
 
     def test_GET_w_url_overrides(self):
-        import re
-        INPUT = re.compile('<input.*name="(?P<name>\w+)"', re.MULTILINE)
+        from io import StringIO
+        from xml.etree import ElementTree as ET
         mtr = self.config.testing_add_template('templates/main.pt')
         settings = self.config.registry.settings 
         settings['cartouche.recover_account_url'] = '/recover.html'
@@ -128,8 +129,9 @@ class Test_login(_Base, unittest.TestCase):
         main_template = info['main_template']
         self.failUnless(main_template is mtr.implementation())
         rendered_form = info['rendered_form']
-        inputs = [x for x in INPUT.findall(rendered_form)
-                        if not x.startswith('_')]
+        form_tree = ET.parse(StringIO(rendered_form))
+        inputs = [x.get('name') for x in form_tree.findall('.//input')]
+        inputs = [x for x in inputs if not x.startswith('_')]
         self.assertEqual(inputs, ['login_name', 'password', 'came_from'])
         self.assertEqual(info['message'], None)
         self.assertEqual(info['recover_account_url'],
@@ -343,7 +345,8 @@ class Test_recover_account(_Base, unittest.TestCase):
 
     def test_POST_w_errors(self):
         import re
-        SUMMARY_ERROR = re.compile('<h3[^>]*>There was a problem', re.MULTILINE)
+        SUMMARY_ERROR = re.compile('<div class="errorMsgLbl"[^>]*>'
+                                   'There was a problem', re.MULTILINE)
         FIELD_ERROR = re.compile('<p class="errorMsg"', re.MULTILINE)
         POST = {'email': '',
                 'recover': '',
@@ -494,7 +497,8 @@ class Test_reset_password(_Base, unittest.TestCase):
 
     def test_POST_w_errors(self):
         import re
-        SUMMARY_ERROR = re.compile('<h3[^>]*>There was a problem', re.MULTILINE)
+        SUMMARY_ERROR = re.compile('<div class="errorMsgLbl"[^>]*>'
+                                   'There was a problem', re.MULTILINE)
         FIELD_ERROR = re.compile('<p class="errorMsg"', re.MULTILINE)
         POST = {'login_name': '', 'token': '', 'reset': ''}
         mtr = self.config.testing_add_template('templates/main.pt')

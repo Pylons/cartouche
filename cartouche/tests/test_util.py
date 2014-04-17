@@ -29,8 +29,12 @@ class _Base(object):
         return DummyModel(**kw)
 
     def _makeRequest(self, **kw):
+        from pyramid.testing import DummyModel
         from pyramid.testing import DummyRequest
-        return DummyRequest(**kw)
+        request = DummyRequest(**kw)
+        request.context = DummyModel()
+        return request
+
 
 
 class Test_view_url(_Base, unittest.TestCase):

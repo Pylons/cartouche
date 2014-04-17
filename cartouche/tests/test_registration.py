@@ -140,7 +140,8 @@ class Test_register_view(_Base, unittest.TestCase):
 
     def test_POST_w_errors(self):
         import re
-        SUMMARY_ERROR = re.compile('<h3[^>]*>There was a problem', re.MULTILINE)
+        SUMMARY_ERROR = re.compile('<div class="errorMsgLbl[^>]*>'
+                                   'There was a problem', re.MULTILINE)
         FIELD_ERROR = re.compile('<p class="errorMsg"', re.MULTILINE)
         POST = {'email': '',
                 'register': '',
@@ -291,7 +292,8 @@ class Test_confirm_registration_view(_Base, unittest.TestCase):
 
     def test_POST_w_validation_errors(self):
         import re
-        SUMMARY_ERROR = re.compile('<h3[^>]*>There was a problem', re.MULTILINE)
+        SUMMARY_ERROR = re.compile('<div class="errorMsgLbl[^>]*>'
+                                   'There was a problem', re.MULTILINE)
         FIELD_ERROR = re.compile('<p class="errorMsg"', re.MULTILINE)
         POST = {'email': '',
                 'token': '',
@@ -329,7 +331,9 @@ class Test_confirm_registration_view(_Base, unittest.TestCase):
 
     def test_POST_w_token_miss(self):
         from webob.exc import HTTPFound
-        from .._compat import url_quote
+        from .._compat import parse_qs
+        from .._compat import urlparse
+        from .._compat import urlunparse
         EMAIL = 'phred@example.com'
         POST = {'email': EMAIL,
                 'token': 'TOKEN',
@@ -343,10 +347,13 @@ class Test_confirm_registration_view(_Base, unittest.TestCase):
         response = self._callFUT(context, request)
 
         self.failUnless(isinstance(response, HTTPFound))
-        self.assertEqual(response.location,
-                         'http://example.com/confirm_registration.html'
-                         '?message=Please+copy+the+token+from+your'
-                         '+confirmation+e-mail.&email=%s' % url_quote(EMAIL))
+        scheme, nethost, path, parms, qs, frag = urlparse(response.location)
+        no_qs = urlunparse((scheme, nethost, path, parms, '', ''))
+        self.assertEqual(no_qs, 'http://example.com/confirm_registration.html')
+        qdict = parse_qs(qs)
+        self.assertEqual(qdict['message'],
+                ['Please copy the token from your confirmation e-mail.'])
+        self.assertEqual(qdict['email'],  [EMAIL])
 
     def test_POST_w_token_hit_no_auto_login(self):
         from webob.exc import HTTPFound
@@ -486,11 +493,11 @@ class Test_edit_account_view(_Base, unittest.TestCase):
         self.failUnless(isinstance(response, HTTPForbidden))
 
     def test_GET_w_known_credentials_initial_edit(self):
-        import re
-        INPUT = re.compile('<input.* name="(?P<name>[\w-]+)" '
-                           'value="(?P<value>[^"]*)"', re.MULTILINE)
-        SELECT = re.compile('<select.* name="(?P<name>\w+)"', re.MULTILINE)
-        EMAIL = 'phred@example.com'
+        from io import StringIO
+        from xml.etree import ElementTree as ET
+        from .._compat import u
+        BLANK = u('')
+        EMAIL = u('phred@example.com')
         ENVIRON = {'repoze.who.identity': {'repoze.who.userid': 'UUID'}}
         by_uuid, by_login, by_email = self._registerConfirmed()
         by_uuid['UUID'] = Dummy(login=EMAIL,
@@ -507,34 +514,38 @@ class Test_edit_account_view(_Base, unittest.TestCase):
 
         self.failUnless(info['main_template'] is mtr.implementation())
         rendered_form = info['rendered_form']
-        inputs = [x for x in INPUT.findall(rendered_form)
-                        if not x[0].startswith('_')]
+        form_tree = ET.parse(StringIO(rendered_form))
+        inputs = [(x.get('name'), x.get('value'))
+                    for x in form_tree.findall('.//input')]
+        inputs = [x for x in inputs if not x[0].startswith('_')]
         self.assertEqual(inputs, [('login_name', EMAIL),
                                   ('email', EMAIL),
-                                  ('old_password', ''), # hidden
-                                  ('password', ''),
-                                  ('password-confirm', ''),
-                                  ('answer', ''),
+                                  ('old_password', BLANK), # hidden
+                                  ('password', BLANK),
+                                  ('password-confirm', BLANK),
+                                  ('answer', BLANK),
                                  ])
-        selects = [x for x in SELECT.findall(rendered_form)]
+        selects = [x.get('name') for x in form_tree.findall('.//select')]
         self.assertEqual(selects, ['question'])
 
     def test_GET_w_known_credentials_later_edit(self):
-        import re
+        from io import StringIO
+        from xml.etree import ElementTree as ET
         from zope.password.password import SSHAPasswordManager
-        INPUT = re.compile('<input.* name="(?P<name>[\w-]+)" '
-                           'value="(?P<value>[^"]*)"', re.MULTILINE)
-        SELECT = re.compile('<select.* name="(?P<name>\w+)"', re.MULTILINE)
-        EMAIL = 'phred@example.com'
+        from .._compat import u
+        BLANK = u('')
+        BEFORE = u('before')
+        FXBG = u('FXBG')
+        EMAIL = u('phred@example.com')
         ENVIRON = {'repoze.who.identity': {'repoze.who.userid': 'UUID'}}
         pwd_mgr = SSHAPasswordManager()
         encoded = pwd_mgr.encodePassword('old_password')
         by_uuid, by_login, by_email = self._registerConfirmed()
-        by_uuid['UUID'] = Dummy(login='before',
+        by_uuid['UUID'] = Dummy(login=BEFORE,
                                 email=EMAIL,
                                 password=encoded,
                                 security_question='borncity',
-                                security_answer='FXBG',
+                                security_answer=FXBG,
                                )
         by_email[EMAIL] = by_login['login'] = 'UUID'
         mtr = self.config.testing_add_template('templates/main.pt')
@@ -544,23 +555,26 @@ class Test_edit_account_view(_Base, unittest.TestCase):
 
         self.failUnless(info['main_template'] is mtr.implementation())
         rendered_form = info['rendered_form']
-        inputs = [x for x in INPUT.findall(rendered_form)
-                        if not x[0].startswith('_')]
-        self.assertEqual(inputs, [('login_name', 'before'),
+        form_tree = ET.parse(StringIO(rendered_form))
+        inputs = [(x.get('name'), x.get('value'))
+                    for x in form_tree.findall('.//input')]
+        inputs = [x for x in inputs if not x[0].startswith('_')]
+        self.assertEqual(inputs, [('login_name', BEFORE),
                                   ('email', EMAIL),
-                                  ('old_password', ''),
-                                  ('password', ''),
-                                  ('password-confirm', ''),
-                                  ('answer', 'FXBG'),
+                                  ('old_password', BLANK),
+                                  ('password', BLANK),
+                                  ('password-confirm', BLANK),
+                                  ('answer', FXBG),
                                  ])
-        selects = [x for x in SELECT.findall(rendered_form)]
+        selects = [x.get('name') for x in form_tree.findall('.//select')]
         self.assertEqual(selects, ['question'])
 
     def test_POST_w_old_password_missing_but_required(self):
         import re
         from webob.multidict import MultiDict
         from zope.password.password import SSHAPasswordManager
-        SUMMARY_ERROR = re.compile('<h3[^>]*>There was a problem', re.MULTILINE)
+        SUMMARY_ERROR = re.compile('<div class="errorMsgLbl[^>]*>'
+                                   'There was a problem', re.MULTILINE)
         FIELD_ERROR = re.compile('<p class="errorMsg"', re.MULTILINE)
         OLD_EMAIL = 'old_phred@example.com'
         NEW_EMAIL = 'new_phred@example.com'
@@ -603,7 +617,8 @@ class Test_edit_account_view(_Base, unittest.TestCase):
         import re
         from webob.multidict import MultiDict
         from zope.password.password import SSHAPasswordManager
-        SUMMARY_ERROR = re.compile('<h3[^>]*>There was a problem', re.MULTILINE)
+        SUMMARY_ERROR = re.compile('<div class="errorMsgLbl[^>]*>'
+                                   'There was a problem', re.MULTILINE)
         FIELD_ERROR = re.compile('<p class="errorMsg"', re.MULTILINE)
         OLD_EMAIL = 'old_phred@example.com'
         NEW_EMAIL = 'new_phred@example.com'
@@ -646,7 +661,8 @@ class Test_edit_account_view(_Base, unittest.TestCase):
         import re
         from webob.multidict import MultiDict
         from zope.password.password import SSHAPasswordManager
-        SUMMARY_ERROR = re.compile('<h3[^>]*>There was a problem', re.MULTILINE)
+        SUMMARY_ERROR = re.compile('<div class="errorMsgLbl[^>]*>'
+                                   'There was a problem', re.MULTILINE)
         FIELD_ERROR = re.compile('<p class="errorMsg"', re.MULTILINE)
         OLD_EMAIL = 'old_phred@example.com'
         NEW_EMAIL = 'new_phred@example.com'
@@ -689,7 +705,8 @@ class Test_edit_account_view(_Base, unittest.TestCase):
         import re
         from webob.multidict import MultiDict
         from zope.password.password import SSHAPasswordManager
-        SUMMARY_ERROR = re.compile('<h3[^>]*>There was a problem', re.MULTILINE)
+        SUMMARY_ERROR = re.compile('<div class="errorMsgLbl[^>]*>'
+                                   'There was a problem', re.MULTILINE)
         FIELD_ERROR = re.compile('<p class="errorMsg"', re.MULTILINE)
         OLD_EMAIL = 'old_phred@example.com'
         NEW_EMAIL = 'new_phred@example.com'

@@ -53,8 +53,8 @@ def view_url(context, request, key, default_name, **extra_qs):
     configured = request.registry.settings.get('cartouche.%s' % key)
     if configured is None:
         if extra_qs:
-            return resource_url(context, request, default_name, query=extra_qs)
-        return resource_url(context, request, default_name)
+            return request.resource_url(context, default_name, query=extra_qs)
+        return request.resource_url(context, default_name)
     return _fixup_url(context, request, configured, **extra_qs)
 
 

@@ -36,14 +36,17 @@ from webob.exc import HTTPFound
 from webob.exc import HTTPUnauthorized
 from zope.password.password import SSHAPasswordManager
 
-from cartouche.interfaces import IAutoLogin
-from cartouche.interfaces import IRegistrations
-from cartouche.persistence import ConfirmedRegistrations
-from cartouche.persistence import PendingRegistrations
-from cartouche.util import getRandomToken
-from cartouche.util import localhost_mta
-from cartouche.util import sendGeneratedPassword
-from cartouche.util import view_url
+from .interfaces import IAutoLogin
+from .interfaces import IRegistrations
+from .persistence import ConfirmedRegistrations
+from .persistence import PendingRegistrations
+from .util import getRandomToken
+from .util import localhost_mta
+from .util import sendGeneratedPassword
+from .util import view_url
+from ._compat import u
+
+_BLANK = u('')
 
 
 templates_dir = resource_filename('cartouche', 'templates/')
@@ -118,7 +121,8 @@ class EditAccount(Schema):
                               validator=old_password_validator,
                              )
     password = SchemaNode(String(),
-                          widget=CheckedPasswordWidget())
+                          widget=CheckedPasswordWidget(),
+                          default=_BLANK)
     security = SecurityQuestion()
 
 
