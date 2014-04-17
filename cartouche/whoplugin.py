@@ -26,6 +26,7 @@ from cartouche.persistence import ConfirmedRegistrations
 @implementer(IAuthenticator)
 class WhoPlugin(object):
     _finder = None
+    _opened = None
 
     def __init__(self, zodb_uri):
         self._zodb_uri = zodb_uri
@@ -49,7 +50,7 @@ class WhoPlugin(object):
                                               name='confirmed')
             if confirmed is None:
                 if getattr(context, '_p_jar', None) is None:
-                    context = self._getFinder()(environ)
+                    context = self._opened = self._getFinder()(environ)
                 while context.__parent__ is not None:
                     context = context.__parent__
                 confirmed = ConfirmedRegistrations(context)
@@ -57,6 +58,12 @@ class WhoPlugin(object):
             if record and self._pwd_mgr.checkPassword(record.password,
                                                       password):
                 return record.uuid
+
+    def close(self):
+        """ Close opened database.
+        """
+        if self._opened is not None:
+            self._opened._p_jar.db().close()
 
 def make_plugin(zodb_uri):
     return WhoPlugin(zodb_uri)

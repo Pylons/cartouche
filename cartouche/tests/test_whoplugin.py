@@ -33,7 +33,7 @@ class WhoPluginTests(unittest.TestCase):
     def _getTempdir(self):
         if self._tempdir is None:
             from tempfile import mkdtemp
-            self._tempdir = mkdtemp()
+            self._tempdir = mkdtemp('whoplugintests')
         return self._tempdir
 
     def _makeContext(self, **kw):
@@ -172,14 +172,20 @@ class WhoPluginTests(unittest.TestCase):
         plugin = self._makeOne()
         environ = {}
         credentials = {'login': 'login', 'password': 'bogus'}
-        self.assertEqual(plugin.authenticate(environ, credentials), None)
+        try:
+            self.assertEqual(plugin.authenticate(environ, credentials), None)
+        finally:
+            plugin.close()
 
     def test_hit_no_conn_in_environ(self):
         self._makeFilestorage()
         environ = {}
         credentials = {'login': 'login', 'password': 'password'}
         plugin = self._makeOne()
-        self.assertEqual(plugin.authenticate(environ, credentials), 'UUID')
+        try:
+            self.assertEqual(plugin.authenticate(environ, credentials), 'UUID')
+        finally:
+            plugin.close()
 
 
 class Test_make_plugin(unittest.TestCase):
