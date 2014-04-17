@@ -34,10 +34,9 @@ class _Base(object):
             import tempfile
             tempdir = self._tempdir = tempfile.mkdtemp()
         fqn = os.path.join(tempdir, filename)
-        f = open(fqn, 'w')
-        f.write(text)
-        f.flush()
-        f.close()
+        with open(fqn, 'w') as f:
+            f.write(text)
+            f.flush()
         return fqn
 
 
